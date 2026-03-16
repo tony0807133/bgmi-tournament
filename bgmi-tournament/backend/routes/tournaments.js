@@ -142,15 +142,36 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
     }).populate('teamLeader');
 
     if (registrations.length === 0) {
-      return res.json({ message: 'All prizes already distributed (or no paid registrations with results set)' });
+      return res.json({ message: 'All prizes already distributed (or no paid registrations)' });
     }
+
+    // ── Recalculate actual prize pool based on paid registrations ────────────
+    // Use actual paid count (not filledSlots) to avoid stale data issues
+    // For paid tournaments: actual pool = entryFee × paidCount × 80%
+    // For free/sponsored tournaments: use stored prizePool as-is
+    const paidCount = await Registration.countDocuments({
+      tournament: req.params.id,
+      paymentStatus: 'paid'
+    });
+    const actualPrizePool = tournament.entryFee > 0
+      ? Math.round(tournament.entryFee * paidCount * 0.8)
+      : tournament.prizePool;
+
+    // Scale each rank prize proportionally to actual pool vs max pool
+    const maxPrizePool = tournament.prizePool; // stored max (based on totalSlots)
+    const scaleFactor = maxPrizePool > 0 ? actualPrizePool / maxPrizePool : 1;
 
     let distributed = 0;
     for (const reg of registrations) {
       let prize = 0;
+
       const rankPrize = tournament.prizes.find(p => p.rank === reg.rank);
-      if (rankPrize) prize += rankPrize.amount;
-      // Kill prize — only for top 3 finishers, supports decimal per-kill rate
+      if (rankPrize) {
+        // Scale the rank prize to actual pool
+        prize += Math.round(rankPrize.amount * scaleFactor);
+      }
+
+      // Kill prize — only for top 3, supports decimals
       if (tournament.killPrize && reg.kills > 0 && reg.rank >= 1 && reg.rank <= 3) {
         prize += Math.round(reg.kills * tournament.killPrize * 100) / 100;
       }
@@ -161,7 +182,7 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
           user: reg.teamLeader._id,
           type: 'credit',
           amount: prize,
-          description: `Prize: ${tournament.title} — Rank #${reg.rank}, ${reg.kills} kills${tournament.type !== 'solo' ? ` (Team Leader: ${reg.teamName})` : ''}`,
+          description: `Prize: ${tournament.title} — Rank #${reg.rank}, ${reg.kills} kills`,
           reference: tournament._id.toString()
         });
         distributed++;
@@ -169,7 +190,7 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
       await Registration.findByIdAndUpdate(reg._id, { prizeAwarded: prize, prizeDistributed: true });
     }
     await Tournament.findByIdAndUpdate(req.params.id, { status: 'completed' });
-    res.json({ message: `Prizes distributed to ${distributed} winner(s)` });
+    res.json({ message: `Prizes distributed to ${distributed} winner(s) from ₹${actualPrizePool} pool` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
