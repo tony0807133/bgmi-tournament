@@ -3,8 +3,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const session = require('express-session');
-const passport = require('passport');
 const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
@@ -37,22 +35,12 @@ app.use(cors({
   credentials: true
 }));
 
-// ── Body parsing — limit size to prevent payload attacks ────────────────────
+// ── Body parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ── Sanitize MongoDB query injection ($, .) ──────────────────────────────────
 app.use(mongoSanitize());
-
-// ── Session + Passport ───────────────────────────────────────────────────────
-app.use(session({
-  secret: process.env.JWT_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'lax' }
-}));
-app.use(passport.initialize());
-app.use(passport.session());
 
 // ── Static uploads ───────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

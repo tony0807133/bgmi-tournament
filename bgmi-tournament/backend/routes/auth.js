@@ -1,67 +1,20 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 
 const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-
-// ── Input validators ─────────────────────────────────────────────────────────
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isStrong = (v) => v && v.length >= 6;
 
-// ── Google OAuth Strategy ────────────────────────────────────────────────────
-const googleConfigured =
-  process.env.GOOGLE_CLIENT_ID &&
-  process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id_here';
-
-if (googleConfigured) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      const email = profile.emails?.[0]?.value;
-      if (!email) return done(new Error('No email from Google'), null);
-      let user = await User.findOne({ $or: [{ googleId: profile.id }, { email }] });
-      if (!user) {
-        user = await User.create({
-          name: profile.displayName,
-          email,
-          googleId: profile.id,
-          avatar: profile.photos?.[0]?.value || '',
-          isVerified: true
-        });
-      } else if (!user.googleId) {
-        user.googleId = profile.id;
-        user.avatar = user.avatar || profile.photos?.[0]?.value || '';
-        await user.save();
-      }
-      done(null, user);
-    } catch (err) {
-      done(err, null);
-    }
-  }));
-}
-
-passport.serializeUser((user, done) => done(null, user._id));
-passport.deserializeUser(async (id, done) => {
-  try { done(null, await User.findById(id)); } catch (e) { done(e, null); }
-});
-
-// ── Register ─────────────────────────────────────────────────────────────────
+// ── Register ──────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, phone, bgmiId, bgmiName } = req.body;
-
     if (!name?.trim()) return res.status(400).json({ message: 'Name is required' });
     if (!isEmail(email)) return res.status(400).json({ message: 'Invalid email' });
     if (!isStrong(password)) return res.status(400).json({ message: 'Password must be at least 6 characters' });
-
     if (await User.findOne({ email: email.toLowerCase() }))
       return res.status(400).json({ message: 'Email already exists' });
 
@@ -91,7 +44,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
     if (!user.password || user.password === '')
-      return res.status(400).json({ message: 'This account uses Google login' });
+      return res.status(400).json({ message: 'This account uses Google login — please contact support' });
     if (!(await bcrypt.compare(password, user.password)))
       return res.status(400).json({ message: 'Invalid credentials' });
 
@@ -101,26 +54,6 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-});
-
-// ── Google OAuth ──────────────────────────────────────────────────────────────
-router.get('/google', (req, res, next) => {
-  if (!googleConfigured) return res.status(503).json({ message: 'Google login not configured' });
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
-});
-
-router.get('/google/callback', (req, res, next) => {
-  if (!googleConfigured)
-    return res.redirect(`${CLIENT_URL}/login?error=google_not_configured`);
-
-  passport.authenticate('google', { session: false, failureRedirect: `${CLIENT_URL}/login?error=google` },
-    (err, user) => {
-      if (err || !user) return res.redirect(`${CLIENT_URL}/login?error=google`);
-      const token = signToken(user._id);
-      // Use hash fragment — not visible in server logs, works cross-domain
-      res.redirect(`${CLIENT_URL}/auth/callback#token=${token}`);
-    }
-  )(req, res, next);
 });
 
 module.exports = router;
