@@ -117,14 +117,8 @@ router.get('/google/callback', (req, res, next) => {
     (err, user) => {
       if (err || !user) return res.redirect(`${CLIENT_URL}/login?error=google`);
       const token = signToken(user._id);
-      // Pass token via short-lived cookie instead of URL query param (avoids server logs exposure)
-      res.cookie('auth_token', token, {
-        httpOnly: false, // frontend JS needs to read it
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 1000 // 1 minute — frontend reads and clears it
-      });
-      res.redirect(`${CLIENT_URL}/auth/callback`);
+      // Use hash fragment — not visible in server logs, works cross-domain
+      res.redirect(`${CLIENT_URL}/auth/callback#token=${token}`);
     }
   )(req, res, next);
 });

@@ -4,12 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Read a cookie by name
-function getCookie(name) {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
 export default function AuthCallback() {
   const [params] = useSearchParams();
   const { login } = useAuth();
@@ -23,10 +17,12 @@ export default function AuthCallback() {
       return;
     }
 
-    // Token is delivered via short-lived cookie (not URL param)
-    const token = getCookie('auth_token');
-    // Clear the cookie immediately after reading
-    document.cookie = 'auth_token=; Max-Age=0; path=/';
+    // Read token from hash fragment e.g. /auth/callback#token=xxx
+    const hash = window.location.hash; // "#token=xxx"
+    const token = hash.startsWith('#token=') ? hash.slice(7) : null;
+
+    // Clear the hash from URL immediately
+    window.history.replaceState(null, '', window.location.pathname);
 
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
