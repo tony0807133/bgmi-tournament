@@ -85,6 +85,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('MongoDB connected');
     require('./utils/screenshotCleanup').startCleanupJob();
+    require('./utils/tournamentCron').startTournamentCron();
     app.listen(process.env.PORT || 5000, '0.0.0.0', () =>
       console.log(`Server running on port ${process.env.PORT || 5000}`)
     );

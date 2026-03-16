@@ -177,7 +177,14 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
       }
 
       if (prize > 0) {
-        await User.findByIdAndUpdate(reg.teamLeader._id, { $inc: { wallet: prize } });
+        await User.findByIdAndUpdate(reg.teamLeader._id, {
+          $inc: {
+            wallet: prize,
+            totalEarnings: prize,
+            totalWins: reg.rank === 1 ? 1 : 0,
+            totalKills: reg.kills || 0
+          }
+        });
         await Transaction.create({
           user: reg.teamLeader._id,
           type: 'credit',
@@ -191,6 +198,92 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
     }
     await Tournament.findByIdAndUpdate(req.params.id, { status: 'completed' });
     res.json({ message: `Prizes distributed to ${distributed} winner(s) from ₹${actualPrizePool} pool` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: Duplicate tournament
+router.post('/:id/duplicate', protect, adminOnly, async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
+    const t = await Tournament.findById(req.params.id);
+    if (!t) return res.status(404).json({ message: 'Not found' });
+    const { _id, filledSlots, roomId, roomPassword, roomSent, status, createdAt, ...data } = t.toObject();
+    const copy = await Tournament.create({
+      ...data,
+      title: `${t.title} (Copy)`,
+      filledSlots: 0,
+      roomId: '',
+      roomPassword: '',
+      roomSent: false,
+      status: 'upcoming',
+      scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // default +1 day
+    });
+    res.status(201).json(copy);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Public: Leaderboard
+router.get('/meta/leaderboard', async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const players = await User.find({ role: 'user', totalEarnings: { $gt: 0 } })
+      .select('name bgmiName bgmiId totalWins totalKills totalEarnings')
+      .sort({ totalEarnings: -1 })
+      .limit(50);
+    res.json(players);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: Analytics
+router.get('/meta/analytics', protect, adminOnly, async (req, res) => {
+  try {
+    const [tournaments, registrations, transactions, users] = await Promise.all([
+      Tournament.find(),
+      Registration.find({ paymentStatus: 'paid' }),
+      Transaction.find({ type: 'debit', description: { $regex: /^Entry:/ } }),
+      require('../models/User').find({ role: 'user' })
+    ]);
+
+    const totalRevenue = transactions.reduce((a, t) => a + t.amount, 0);
+    const totalPrizeDistributed = await Transaction.aggregate([
+      { $match: { type: 'credit', description: { $regex: /^Prize:/ } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalDeposits = await Transaction.aggregate([
+      { $match: { type: 'credit', description: { $regex: /Wallet deposit/ } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    // Registrations per day (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const dailyRegs = await Registration.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo }, paymentStatus: 'paid' } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({
+      totalTournaments: tournaments.length,
+      completedTournaments: tournaments.filter(t => t.status === 'completed').length,
+      ongoingTournaments: tournaments.filter(t => t.status === 'ongoing').length,
+      upcomingTournaments: tournaments.filter(t => t.status === 'upcoming').length,
+      totalRegistrations: registrations.length,
+      totalUsers: users.length,
+      totalRevenue,
+      adminProfit: Math.round(totalRevenue * 0.2),
+      totalPrizeDistributed: totalPrizeDistributed[0]?.total || 0,
+      totalDeposits: totalDeposits[0]?.total || 0,
+      dailyRegistrations: dailyRegs,
+      avgPlayersPerTournament: tournaments.length
+        ? Math.round(registrations.length / tournaments.length)
+        : 0
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

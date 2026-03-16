@@ -19,6 +19,7 @@ import AdminWithdrawals from './pages/admin/Withdrawals';
 import AdminUsers from './pages/admin/Users';
 import AuthCallback from './pages/AuthCallback';
 import Download from './pages/Download';
+import Leaderboard from './pages/Leaderboard';
 import HowToUse from './pages/HowToUse';
 import FairPlay from './pages/FairPlay';
 import TermsOfService from './pages/TermsOfService';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/admin/tournaments/:id/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
           <Route path="/download" element={<Download />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/how-to-use" element={<HowToUse />} />

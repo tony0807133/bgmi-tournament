@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', bgmiId: '', bgmiName: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', bgmiId: '', bgmiName: '', referralCode: '' });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const { login, user } = useAuth();
@@ -80,6 +80,12 @@ export default function Register() {
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">BGMI Name</label>
                 <input className="input" placeholder="ProPlayer123" {...f('bgmiName')} required />
               </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
+                Referral Code <span className="text-gray-600 normal-case font-normal">(optional — get ₹20 bonus)</span>
+              </label>
+              <input className="input" placeholder="e.g. AB12CD34" {...f('referralCode')} />
             </div>
             <button type="submit" className="btn-primary w-full py-3 text-base mt-2" disabled={loading}>
               {loading ? (

@@ -41,6 +41,7 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
           {navLink('/tournaments', 'Tournaments')}
+          {navLink('/leaderboard', '🏆 Leaderboard')}
           {user && navLink('/my-registrations', 'My Matches')}
           {user?.role === 'admin' && (
             <Link to="/admin" className="text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1">
@@ -113,6 +114,7 @@ export default function Navbar() {
       {open && (
         <div className="md:hidden border-t border-white/[0.06] bg-[#0a0a0f]/95 px-4 py-4 flex flex-col gap-3">
           {navLink('/tournaments', '🏆 Tournaments')}
+          {navLink('/leaderboard', '🥇 Leaderboard')}
           {user && navLink('/my-registrations', '🎮 My Matches')}
           {user && navLink('/wallet', `💰 Wallet ₹${user.wallet || 0}`)}
           {user && navLink('/profile', '👤 Profile')}

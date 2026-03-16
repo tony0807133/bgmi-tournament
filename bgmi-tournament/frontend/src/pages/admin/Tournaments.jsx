@@ -61,6 +61,16 @@ export default function AdminTournaments() {
     }
   };
 
+  const duplicate = async (id) => {
+    try {
+      const { data } = await axios.post(`/api/tournaments/${id}/duplicate`);
+      toast.success('Tournament duplicated!');
+      fetchTournaments();
+    } catch (err) {
+      toast.error('Failed to duplicate');
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center items-center py-32">
       <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent"></div>
@@ -127,6 +137,9 @@ export default function AdminTournaments() {
                     <Link to={`/admin/tournaments/${t._id}/edit`} className="btn-secondary text-xs py-1.5 px-3">
                       Edit
                     </Link>
+                    <button onClick={() => duplicate(t._id)} className="btn-secondary text-xs py-1.5 px-3" title="Clone this tournament">
+                      📋 Clone
+                    </button>
                     {t.status === 'upcoming' && (
                       <>
                         <button onClick={() => sendRoom(t._id, t.title)} className="btn-primary text-xs py-1.5 px-3">

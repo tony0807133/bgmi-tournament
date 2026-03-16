@@ -35,4 +35,14 @@ router.get('/', protect, adminOnly, async (req, res) => {
   }
 });
 
+// Get referral info for current user
+router.get('/referral', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('referralCode referralCount');
+    res.json({ referralCode: user.referralCode, referralCount: user.referralCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
