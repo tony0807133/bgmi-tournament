@@ -24,9 +24,10 @@ app.use(helmet({
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    // In dev: allow no-origin requests AND any local network IP (192.168.x, 10.x, 172.x)
+    // Google OAuth redirects have no origin — always allow
+    if (!origin) return cb(null, true);
+    // In dev: allow any local network IP
     if (process.env.NODE_ENV !== 'production') {
-      if (!origin) return cb(null, true);
       if (/^http:\/\/(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(origin))
         return cb(null, true);
     }
