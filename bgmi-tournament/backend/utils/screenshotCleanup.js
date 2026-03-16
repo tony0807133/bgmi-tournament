@@ -1,48 +1,53 @@
 const cron = require('node-cron');
-const fs = require('fs');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
 const Registration = require('../models/Registration');
 
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
-const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
-
-async function cleanupOldScreenshots() {
+// Extract Cloudinary public_id from a URL
+// e.g. https://res.cloudinary.com/demo/image/upload/v123/bgmi/screenshots/abc.jpg → bgmi/screenshots/abc
+function getPublicId(url) {
+  if (!url) return null;
   try {
-    const cutoff = new Date(Date.now() - TEN_DAYS_MS);
-
-    // Find registrations with screenshots uploaded more than 10 days ago
-    const regs = await Registration.find({
-      winningScreenshot: { $ne: '' },
-      createdAt: { $lt: cutoff }
-    });
-
-    if (regs.length === 0) return;
-
-    let deleted = 0;
-    for (const reg of regs) {
-      // Delete file from disk
-      const filename = reg.winningScreenshot.replace('/uploads/', '');
-      const filepath = path.join(UPLOADS_DIR, filename);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-      }
-      // Clear the field in DB
-      reg.winningScreenshot = '';
-      reg.screenshotVerified = false;
-      await reg.save();
-      deleted++;
-    }
-
-    console.log(`[Screenshot Cleanup] Deleted ${deleted} old screenshot(s)`);
-  } catch (err) {
-    console.error('[Screenshot Cleanup] Error:', err.message);
+    const parts = url.split('/upload/');
+    if (parts.length < 2) return null;
+    // Remove version segment (v12345/) if present
+    const withoutVersion = parts[1].replace(/^v\d+\//, '');
+    // Remove file extension
+    return withoutVersion.replace(/\.[^/.]+$/, '');
+  } catch {
+    return null;
   }
 }
 
-// Run every day at 2:00 AM
-function startCleanupJob() {
-  cron.schedule('0 2 * * *', cleanupOldScreenshots);
-  console.log('[Screenshot Cleanup] Scheduled — runs daily at 2:00 AM');
+async function deleteOldScreenshots() {
+  const cutoff = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+  const old = await Registration.find({
+    winningScreenshot: { $ne: null, $exists: true },
+    createdAt: { $lt: cutoff }
+  });
+
+  for (const reg of old) {
+    const publicId = getPublicId(reg.winningScreenshot);
+    if (publicId) {
+      try {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`[Cleanup] Deleted screenshot: ${publicId}`);
+      } catch (err) {
+        console.error(`[Cleanup] Failed to delete ${publicId}:`, err.message);
+      }
+    }
+    reg.winningScreenshot = null;
+    await reg.save();
+  }
+  if (old.length) console.log(`[Cleanup] Processed ${old.length} old screenshots`);
 }
 
-module.exports = { startCleanupJob, cleanupOldScreenshots };
+function startCleanupJob() {
+  // Run daily at 2am
+  cron.schedule('0 2 * * *', () => {
+    console.log('[Cleanup] Running screenshot cleanup...');
+    deleteOldScreenshots().catch(err => console.error('[Cleanup] Error:', err.message));
+  });
+  console.log('[Cleanup] Screenshot cleanup job scheduled');
+}
+
+module.exports = { startCleanupJob };

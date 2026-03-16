@@ -157,7 +157,7 @@ router.post('/:id/screenshot', protect, upload.single('screenshot'), async (req,
       return res.status(403).json({ message: 'Not authorized' });
     if (!['ongoing', 'completed'].includes(reg.tournament?.status))
       return res.status(400).json({ message: 'Screenshots can only be uploaded after match starts' });
-    reg.winningScreenshot = `/uploads/${req.file.filename}`;
+    reg.winningScreenshot = req.file.path; // Cloudinary URL
     reg.screenshotVerified = false; // reset verification on re-upload
     await reg.save();
     res.json({ screenshot: reg.winningScreenshot });

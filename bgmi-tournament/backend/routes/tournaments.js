@@ -40,7 +40,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', protect, adminOnly, upload.single('banner'), async (req, res) => {
   try {
     const data = { ...req.body };
-    if (req.file) data.banner = `/uploads/${req.file.filename}`;
+    if (req.file) data.banner = req.file.path; // Cloudinary URL
     if (typeof data.prizes === 'string') data.prizes = JSON.parse(data.prizes);
     const tournament = await Tournament.create(data);
     res.status(201).json(tournament);
