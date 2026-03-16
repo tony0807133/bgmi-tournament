@@ -8,17 +8,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Banner-only storage — uploads to bgmi/banners folder
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: (req, file) => {
-    const isScreenshot = req.path.includes('screenshot');
-    return {
-      folder: isScreenshot ? 'bgmi/screenshots' : 'bgmi/banners',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-      transformation: isScreenshot
-        ? [{ width: 1280, crop: 'limit' }]
-        : [{ width: 800, crop: 'limit' }]
-    };
+  params: {
+    folder: 'bgmi/banners',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 800, crop: 'limit' }]
   }
 });
 

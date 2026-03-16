@@ -7,7 +7,7 @@ const Tournament = require('../models/Tournament');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { protect, adminOnly } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -142,41 +142,6 @@ router.post('/verify-payment', protect, async (req, res) => {
       reference: razorpay_payment_id
     });
     res.status(201).json(reg);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Upload winning screenshot (team leader only, tournament must be ongoing or completed)
-router.post('/:id/screenshot', protect, upload.single('screenshot'), async (req, res) => {
-  try {
-    if (!isValidId(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
-    const reg = await Registration.findById(req.params.id).populate('tournament');
-    if (!reg) return res.status(404).json({ message: 'Registration not found' });
-    if (reg.teamLeader.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: 'Not authorized' });
-    if (!['ongoing', 'completed'].includes(reg.tournament?.status))
-      return res.status(400).json({ message: 'Screenshots can only be uploaded after match starts' });
-    reg.winningScreenshot = req.file.path; // Cloudinary URL
-    reg.screenshotVerified = false; // reset verification on re-upload
-    await reg.save();
-    res.json({ screenshot: reg.winningScreenshot });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Admin: Verify or reject screenshot
-router.put('/:id/verify-screenshot', protect, adminOnly, async (req, res) => {
-  try {
-    if (!isValidId(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
-    const { verified } = req.body;
-    const reg = await Registration.findByIdAndUpdate(
-      req.params.id,
-      { screenshotVerified: verified },
-      { new: true }
-    );
-    res.json(reg);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
