@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer glow ring -->
+  <circle cx="100" cy="100" r="90" fill="url(#glowGrad)" opacity="0.4"/>
+
+  <!-- Shield body -->
+  <path d="M100 18 L162 45 L162 105 C162 140 134 168 100 182 C66 168 38 140 38 105 L38 45 Z"
+        fill="#0f0f17" stroke="url(#shieldGrad)" stroke-width="3"/>
+
+  <!-- Shield inner highlight -->
+  <path d="M100 30 L152 53 L152 105 C152 134 128 158 100 170 C72 158 48 134 48 105 L48 53 Z"
+        fill="none" stroke="#f97316" stroke-width="1" stroke-opacity="0.2"/>
+
+  <!-- Crosshair circle -->
+  <circle cx="100" cy="100" r="30" fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" filter="url(#glow)"/>
+
+  <!-- Crosshair center dot -->
+  <circle cx="100" cy="100" r="5" fill="url(#shieldGrad)" filter="url(#glow)"/>
+
+  <!-- Crosshair lines -->
+  <line x1="100" y1="58" x2="100" y2="78" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="100" y1="122" x2="100" y2="142" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="58" y1="100" x2="78" y2="100" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="122" y1="100" x2="142" y2="100" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- Corner tick marks on crosshair -->
+  <line x1="100" y1="58" x2="100" y2="64" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+  <line x1="100" y1="136" x2="100" y2="142" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+  <line x1="58" y1="100" x2="64" y2="100" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+  <line x1="136" y1="100" x2="142" y2="100" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+
+  <!-- Shield bottom emblem line -->
+  <line x1="76" y1="148" x2="124" y2="148" stroke="#f97316" stroke-width="1.5" stroke-opacity="0.4" stroke-linecap="round"/>
+</svg>
