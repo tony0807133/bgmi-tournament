@@ -79,7 +79,8 @@ app.get('/api/test-email', async (req, res) => {
   const config = {
     user: process.env.BREVO_USER || 'NOT SET',
     keySet: !!process.env.BREVO_SMTP_KEY,
-    keyLength: (process.env.BREVO_SMTP_KEY || '').length
+    keyLength: (process.env.BREVO_SMTP_KEY || '').length,
+    keyLengthCleaned: (process.env.BREVO_SMTP_KEY || '').replace(/\s+/g, '').length
   };
   try {
     const { sendRoomDetails } = require('./utils/email');

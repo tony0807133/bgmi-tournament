@@ -1,13 +1,15 @@
 const nodemailer = require('nodemailer');
 
-// Brevo SMTP on port 465 (SSL) — more reliable on cloud servers
+// Strip any whitespace/newlines from the key (copy-paste artifacts)
+const brevoKey = (process.env.BREVO_SMTP_KEY || '').replace(/\s+/g, '');
+
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
   port: 465,
   secure: true,
   auth: {
     user: process.env.BREVO_USER,
-    pass: process.env.BREVO_SMTP_KEY
+    pass: brevoKey
   },
   connectionTimeout: 10000,
   greetingTimeout: 10000,
