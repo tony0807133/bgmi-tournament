@@ -140,3 +140,60 @@ exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
     html
   });
 };
+
+exports.sendReminderEmail = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #fff; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: #1a1a2e; border-radius: 16px; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #22c55e, #16a34a); padding: 36px 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+    .header p { margin: 8px 0 0; opacity: 0.9; font-size: 15px; }
+    .body { padding: 30px; }
+    .alert { background: #16213e; border: 2px solid #22c55e; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px; }
+    .alert .countdown { font-size: 42px; font-weight: 900; color: #22c55e; }
+    .alert .sub { color: #9ca3af; font-size: 14px; margin-top: 4px; }
+    .room-box { background: #0f3460; border-radius: 8px; padding: 16px; text-align: center; margin: 10px 0; }
+    .room-box .room-label { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+    .room-box .room-value { font-size: 28px; font-weight: bold; color: #f97316; letter-spacing: 4px; margin-top: 4px; }
+    .footer { background: #0f0f1a; padding: 20px 30px; text-align: center; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Match Starting in 15 Minutes!</h1>
+      <p>${tournament.title}</p>
+    </div>
+    <div class="body">
+      <p>Hey <strong>${name}</strong>, your match is about to begin. Join the room NOW!</p>
+      <div class="alert">
+        <div class="countdown">15 min</div>
+        <div class="sub">until match start · Slot #${slotNumber}</div>
+      </div>
+      <div class="room-box">
+        <div class="room-label">Room ID</div>
+        <div class="room-value">${roomId}</div>
+      </div>
+      <div class="room-box">
+        <div class="room-label">Room Password</div>
+        <div class="room-value">${roomPassword}</div>
+      </div>
+      <p style="color:#f59e0b; font-size:14px; margin-top:20px;">⚠️ Join immediately — late entry may result in disqualification. Good luck! 🔥</p>
+    </div>
+    <div class="footer">BGMI Tournament Platform &bull; Automated reminder</div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"BGMI Tournament" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `⚡ 15 Min Reminder: ${tournament.title} — Join Now!`,
+    html
+  });
+};

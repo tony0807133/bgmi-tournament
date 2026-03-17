@@ -22,6 +22,7 @@ const tournamentSchema = new mongoose.Schema({
   roomId: { type: String, default: '' },
   roomPassword: { type: String, default: '' },
   roomSent: { type: Boolean, default: false },
+  reminderSent: { type: Boolean, default: false },
   status: {
     type: String,
     enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
