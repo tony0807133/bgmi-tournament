@@ -91,7 +91,6 @@ app.get('/api/test-email', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
