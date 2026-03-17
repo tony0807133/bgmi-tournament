@@ -157,7 +157,7 @@ export default function TournamentDetail() {
             {[
               { label: 'Entry Fee', value: tournament.entryFee === 0 ? 'FREE' : `₹${tournament.entryFee}`, color: 'text-orange-400' },
               { label: 'Kill Prize', value: tournament.killPrize > 0 ? `₹${tournament.killPrize}/kill` : 'None', color: 'text-yellow-400' },
-              { label: 'Schedule', value: new Date(tournament.scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), color: 'text-blue-400' },
+              { label: 'Schedule', value: new Date(tournament.scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }), color: 'text-blue-400' },
               { label: 'Total Slots', value: tournament.totalSlots, color: 'text-purple-400' },
             ].map(s => (
               <div key={s.label} className="card text-center py-4">
@@ -252,8 +252,8 @@ export default function TournamentDetail() {
           {/* Schedule card */}
           <div className="card">
             <h3 className="font-bold mb-3 text-sm text-gray-400 uppercase tracking-wider">Match Schedule</h3>
-            <p className="font-bold text-white">{new Date(tournament.scheduledAt).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-            <p className="text-orange-400 font-semibold mt-0.5">{new Date(tournament.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+            <p className="font-bold text-white">{new Date(tournament.scheduledAt).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}</p>
+            <p className="text-orange-400 font-semibold mt-0.5">{new Date(tournament.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</p>
           </div>
 
           {/* Register CTA */}

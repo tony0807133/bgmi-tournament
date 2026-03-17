@@ -55,7 +55,7 @@ export default function TournamentCard({ tournament }) {
       <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
         <span>🗺️ {map}</span>
         <span>•</span>
-        <span>📅 {new Date(scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <span>📅 {new Date(scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</span>
       </div>
 
       {/* Prize & Entry */}

@@ -67,7 +67,9 @@ export default function TournamentForm() {
     if (isEdit) {
       axios.get(`/api/tournaments/${id}`).then(r => {
         const t = r.data;
-        setForm({ ...t, scheduledAt: new Date(t.scheduledAt).toISOString().slice(0, 16) });
+        // Convert UTC to IST for datetime-local input (IST = UTC+5:30)
+        const ist = new Date(new Date(t.scheduledAt).getTime() + (5.5 * 60 * 60 * 1000));
+        setForm({ ...t, scheduledAt: ist.toISOString().slice(0, 16) });
         setManualPrizes(t.prizes || []);
         setManualKillPrize(String(t.killPrize || 0));
         setAutoMode(false);
@@ -144,6 +146,8 @@ export default function TournamentForm() {
     try {
       const payload = {
         ...form,
+        // datetime-local gives IST, convert to UTC before saving (subtract 5:30)
+        scheduledAt: new Date(new Date(form.scheduledAt).getTime() - (5.5 * 60 * 60 * 1000)).toISOString(),
         killPrize: activeKillPrize,
         prizes: activePrizes,
         prizePool: effectivePrizePool,
