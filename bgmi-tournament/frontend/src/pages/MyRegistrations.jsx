@@ -65,7 +65,7 @@ export default function MyRegistrations() {
                       {t?.scheduledAt && (
                         <>
                           <span className="text-gray-600">•</span>
-                          <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })}</span>
+                          <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</span>
                         </>
                       )}
                     </div>

@@ -67,9 +67,11 @@ export default function TournamentForm() {
     if (isEdit) {
       axios.get(`/api/tournaments/${id}`).then(r => {
         const t = r.data;
-        // Convert UTC to IST for datetime-local input (IST = UTC+5:30)
-        const ist = new Date(new Date(t.scheduledAt).getTime() + (5.5 * 60 * 60 * 1000));
-        setForm({ ...t, scheduledAt: ist.toISOString().slice(0, 16) });
+        // Format UTC date to local datetime-local input format (browser handles timezone)
+        const local = new Date(t.scheduledAt);
+        const pad = n => String(n).padStart(2, '0');
+        const localStr = `${local.getFullYear()}-${pad(local.getMonth()+1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}`;
+        setForm({ ...t, scheduledAt: localStr });
         setManualPrizes(t.prizes || []);
         setManualKillPrize(String(t.killPrize || 0));
         setAutoMode(false);
@@ -146,8 +148,8 @@ export default function TournamentForm() {
     try {
       const payload = {
         ...form,
-        // datetime-local gives IST, convert to UTC before saving (subtract 5:30)
-        scheduledAt: new Date(new Date(form.scheduledAt).getTime() - (5.5 * 60 * 60 * 1000)).toISOString(),
+        // datetime-local value is local time — new Date() converts to UTC automatically
+        scheduledAt: new Date(form.scheduledAt).toISOString(),
         killPrize: activeKillPrize,
         prizes: activePrizes,
         prizePool: effectivePrizePool,
