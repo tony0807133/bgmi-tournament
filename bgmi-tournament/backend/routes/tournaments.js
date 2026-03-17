@@ -10,6 +10,64 @@ const upload = require('../middleware/upload');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
+// Public: Leaderboard — MUST be before /:id
+router.get('/meta/leaderboard', async (req, res) => {
+  try {
+    const players = await User.find({ role: 'user', totalEarnings: { $gt: 0 } })
+      .select('name bgmiName bgmiId totalWins totalKills totalEarnings')
+      .sort({ totalEarnings: -1 })
+      .limit(50);
+    res.json(players);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: Analytics — MUST be before /:id
+router.get('/meta/analytics', protect, adminOnly, async (req, res) => {
+  try {
+    const [tournaments, registrations, transactions, users] = await Promise.all([
+      Tournament.find(),
+      Registration.find({ paymentStatus: 'paid' }),
+      Transaction.find({ type: 'debit', description: { $regex: /^Entry:/ } }),
+      User.find({ role: 'user' })
+    ]);
+
+    const totalRevenue = transactions.reduce((a, t) => a + t.amount, 0);
+    const totalPrizeDistributed = await Transaction.aggregate([
+      { $match: { type: 'credit', description: { $regex: /^Prize:/ } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalDeposits = await Transaction.aggregate([
+      { $match: { type: 'credit', description: { $regex: /Wallet deposit/ } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const dailyRegs = await Registration.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo }, paymentStatus: 'paid' } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({
+      totalTournaments: tournaments.length,
+      completedTournaments: tournaments.filter(t => t.status === 'completed').length,
+      ongoingTournaments: tournaments.filter(t => t.status === 'ongoing').length,
+      upcomingTournaments: tournaments.filter(t => t.status === 'upcoming').length,
+      totalRegistrations: registrations.length,
+      totalUsers: users.length,
+      totalRevenue,
+      adminProfit: Math.round(totalRevenue * 0.2),
+      totalPrizeDistributed: totalPrizeDistributed[0]?.total || 0,
+      totalDeposits: totalDeposits[0]?.total || 0,
+      dailyRegistrations: dailyRegs,
+      avgPlayersPerTournament: tournaments.length ? Math.round(registrations.length / tournaments.length) : 0
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all tournaments (public)
 router.get('/', async (req, res) => {
   try {
@@ -221,69 +279,6 @@ router.post('/:id/duplicate', protect, adminOnly, async (req, res) => {
       scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // default +1 day
     });
     res.status(201).json(copy);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Public: Leaderboard
-router.get('/meta/leaderboard', async (req, res) => {
-  try {
-    const User = require('../models/User');
-    const players = await User.find({ role: 'user', totalEarnings: { $gt: 0 } })
-      .select('name bgmiName bgmiId totalWins totalKills totalEarnings')
-      .sort({ totalEarnings: -1 })
-      .limit(50);
-    res.json(players);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Admin: Analytics
-router.get('/meta/analytics', protect, adminOnly, async (req, res) => {
-  try {
-    const [tournaments, registrations, transactions, users] = await Promise.all([
-      Tournament.find(),
-      Registration.find({ paymentStatus: 'paid' }),
-      Transaction.find({ type: 'debit', description: { $regex: /^Entry:/ } }),
-      require('../models/User').find({ role: 'user' })
-    ]);
-
-    const totalRevenue = transactions.reduce((a, t) => a + t.amount, 0);
-    const totalPrizeDistributed = await Transaction.aggregate([
-      { $match: { type: 'credit', description: { $regex: /^Prize:/ } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const totalDeposits = await Transaction.aggregate([
-      { $match: { type: 'credit', description: { $regex: /Wallet deposit/ } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-
-    // Registrations per day (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const dailyRegs = await Registration.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo }, paymentStatus: 'paid' } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]);
-
-    res.json({
-      totalTournaments: tournaments.length,
-      completedTournaments: tournaments.filter(t => t.status === 'completed').length,
-      ongoingTournaments: tournaments.filter(t => t.status === 'ongoing').length,
-      upcomingTournaments: tournaments.filter(t => t.status === 'upcoming').length,
-      totalRegistrations: registrations.length,
-      totalUsers: users.length,
-      totalRevenue,
-      adminProfit: Math.round(totalRevenue * 0.2),
-      totalPrizeDistributed: totalPrizeDistributed[0]?.total || 0,
-      totalDeposits: totalDeposits[0]?.total || 0,
-      dailyRegistrations: dailyRegs,
-      avgPlayersPerTournament: tournaments.length
-        ? Math.round(registrations.length / tournaments.length)
-        : 0
-    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
