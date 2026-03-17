@@ -13,6 +13,9 @@ const statusConfig = {
 export default function AdminTournaments() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Room modal state
+  const [roomModal, setRoomModal] = useState(null); // { id, title, roomId, roomPassword }
+  const [sending, setSending] = useState(false);
 
   const fetchTournaments = () => {
     axios.get('/api/tournaments').then(r => {
@@ -22,12 +25,31 @@ export default function AdminTournaments() {
 
   useEffect(fetchTournaments, []);
 
-  const sendRoom = async (id, title) => {
+  const openRoomModal = (t) => {
+    setRoomModal({ id: t._id, title: t.title, roomId: t.roomId || '', roomPassword: t.roomPassword || '' });
+  };
+
+  const handleSendRoom = async () => {
+    if (!roomModal.roomId.trim() || !roomModal.roomPassword.trim()) {
+      toast.error('Enter both Room ID and Password');
+      return;
+    }
+    setSending(true);
     try {
-      const { data } = await axios.post(`/api/tournaments/${id}/send-room`);
+      // First save room ID + password to tournament
+      await axios.put(`/api/tournaments/${roomModal.id}`, {
+        roomId: roomModal.roomId.trim(),
+        roomPassword: roomModal.roomPassword.trim()
+      });
+      // Then send emails
+      const { data } = await axios.post(`/api/tournaments/${roomModal.id}/send-room`);
       toast.success(data.message);
+      setRoomModal(null);
+      fetchTournaments();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed — set room ID & password first');
+      toast.error(err.response?.data?.message || 'Failed to send room');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -55,7 +77,7 @@ export default function AdminTournaments() {
 
   const duplicate = async (id) => {
     try {
-      const { data } = await axios.post(`/api/tournaments/${id}/duplicate`);
+      await axios.post(`/api/tournaments/${id}/duplicate`);
       toast.success('Tournament duplicated!');
       fetchTournaments();
     } catch (err) {
@@ -92,6 +114,7 @@ export default function AdminTournaments() {
         <div className="space-y-3">
           {tournaments.map(t => {
             const progress = Math.round((t.filledSlots / t.totalSlots) * 100);
+            const hasRoom = t.roomId && t.roomId.trim() !== '';
             return (
               <div key={t._id} className="card hover:border-white/10 transition-all">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -100,6 +123,8 @@ export default function AdminTournaments() {
                       <h3 className="font-bold text-base">{t.title}</h3>
                       <span className={`badge text-xs ${statusConfig[t.status]}`}>{t.status}</span>
                       <span className="badge bg-white/5 text-gray-400 text-xs uppercase">{t.type}</span>
+                      {hasRoom && <span className="badge bg-green-500/10 text-green-400 text-xs">🔑 Room Set</span>}
+                      {t.roomSent && <span className="badge bg-orange-500/10 text-orange-400 text-xs">📧 Sent</span>}
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-3">
                       <span>🗺️ {t.map}</span>
@@ -107,7 +132,6 @@ export default function AdminTournaments() {
                       <span>🏆 ₹{t.prizePool} pool</span>
                       <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</span>
                     </div>
-                    {/* Slot progress */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[200px]">
                         <div className={`h-full rounded-full ${progress >= 100 ? 'bg-red-500' : progress > 75 ? 'bg-yellow-500' : 'bg-orange-500'}`}
@@ -124,12 +148,12 @@ export default function AdminTournaments() {
                     <Link to={`/admin/tournaments/${t._id}/edit`} className="btn-secondary text-xs py-1.5 px-3">
                       Edit
                     </Link>
-                    <button onClick={() => duplicate(t._id)} className="btn-secondary text-xs py-1.5 px-3" title="Clone this tournament">
+                    <button onClick={() => duplicate(t._id)} className="btn-secondary text-xs py-1.5 px-3">
                       📋 Clone
                     </button>
                     {(t.status === 'upcoming' || t.status === 'ongoing') && (
                       <>
-                        <button onClick={() => sendRoom(t._id, t.title)} className="btn-primary text-xs py-1.5 px-3">
+                        <button onClick={() => openRoomModal(t)} className="btn-primary text-xs py-1.5 px-3">
                           📧 Send Room
                         </button>
                         {t.status === 'upcoming' && (
@@ -149,6 +173,54 @@ export default function AdminTournaments() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Room Modal */}
+      {roomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#111118] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-lg font-black mb-1">📧 Send Room Details</h2>
+            <p className="text-gray-500 text-sm mb-5">{roomModal.title}</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Room ID</label>
+                <input
+                  className="input text-lg font-mono tracking-wider"
+                  placeholder="e.g. 123456"
+                  value={roomModal.roomId}
+                  onChange={e => setRoomModal({ ...roomModal, roomId: e.target.value })}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Room Password</label>
+                <input
+                  className="input text-lg font-mono tracking-wider"
+                  placeholder="e.g. bgmi123"
+                  value={roomModal.roomPassword}
+                  onChange={e => setRoomModal({ ...roomModal, roomPassword: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 mt-3">
+              This will save the room details and send an email to all paid registered players.
+            </p>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={handleSendRoom} disabled={sending} className="btn-primary flex-1 py-2.5">
+                {sending ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Sending...
+                  </span>
+                ) : '📧 Save & Send to All Players'}
+              </button>
+              <button onClick={() => setRoomModal(null)} className="btn-secondary px-5">Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
