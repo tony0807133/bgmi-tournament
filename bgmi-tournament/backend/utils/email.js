@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = 'BGMI Arena <onboarding@resend.dev>';
+const FROM = 'BGMI Arena <noreply@morse-code-trainer.com>';
 
 exports.sendRoomDetails = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
   await resend.emails.send({
