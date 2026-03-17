@@ -143,7 +143,7 @@ router.post('/:id/send-room', protect, adminOnly, async (req, res) => {
       }).catch(err => console.error(`[Email] Failed to send to ${reg.teamLeader.email}:`, err.message))
     );
     await Promise.all(emailPromises);
-    await Tournament.findByIdAndUpdate(req.params.id, { roomSent: true });
+    await Tournament.findByIdAndUpdate(req.params.id, { roomSent: true, ongoingEmailSent: true });
     res.json({ message: `Room details sent to ${registrations.length} teams` });
   } catch (err) {
     res.status(500).json({ message: err.message });

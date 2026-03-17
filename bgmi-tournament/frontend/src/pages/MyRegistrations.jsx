@@ -50,8 +50,8 @@ export default function MyRegistrations() {
             const t = reg.tournament;
             const isLive = t?.status === 'ongoing';
             const isCompleted = t?.status === 'completed';
-            // Show room if admin sent it OR if tournament is ongoing and roomId exists
-            const roomAvailable = (t?.roomSent || isLive) && t?.roomId;
+            // Show room if roomId is set AND (admin sent it OR tournament is ongoing/completed)
+            const roomAvailable = t?.roomId?.trim() && (t?.roomSent || isLive || isCompleted);
 
             return (
               <div key={reg._id} className={`card transition-all ${isLive ? 'border-green-500/20' : ''}`}>

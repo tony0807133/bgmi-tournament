@@ -140,14 +140,16 @@ export default function AdminTournaments() {
                     <button onClick={() => duplicate(t._id)} className="btn-secondary text-xs py-1.5 px-3" title="Clone this tournament">
                       📋 Clone
                     </button>
-                    {t.status === 'upcoming' && (
+                    {(t.status === 'upcoming' || t.status === 'ongoing') && (
                       <>
                         <button onClick={() => sendRoom(t._id, t.title)} className="btn-primary text-xs py-1.5 px-3">
                           📧 Send Room
                         </button>
-                        <button onClick={() => refundAll(t._id)} className="btn-danger text-xs py-1.5 px-3">
-                          Refund & Cancel
-                        </button>
+                        {t.status === 'upcoming' && (
+                          <button onClick={() => refundAll(t._id)} className="btn-danger text-xs py-1.5 px-3">
+                            Refund & Cancel
+                          </button>
+                        )}
                       </>
                     )}
                     {(t.status === 'ongoing' || t.status === 'completed') && (
