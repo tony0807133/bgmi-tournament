@@ -113,7 +113,7 @@ export default function AdminTournaments() {
                       <span>🗺️ {t.map}</span>
                       <span>💰 ₹{t.entryFee} entry</span>
                       <span>🏆 ₹{t.prizePool} pool</span>
-                      <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</span>
+                      <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })}</span>
                     </div>
                     {/* Slot progress */}
                     <div className="flex items-center gap-3">

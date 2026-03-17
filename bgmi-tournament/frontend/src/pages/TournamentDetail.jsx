@@ -253,7 +253,7 @@ export default function TournamentDetail() {
           <div className="card">
             <h3 className="font-bold mb-3 text-sm text-gray-400 uppercase tracking-wider">Match Schedule</h3>
             <p className="font-bold text-white">{new Date(tournament.scheduledAt).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}</p>
-            <p className="text-orange-400 font-semibold mt-0.5">{new Date(tournament.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</p>
+            <p className="text-orange-400 font-semibold mt-0.5">{new Date(tournament.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })}</p>
           </div>
 
           {/* Register CTA */}
