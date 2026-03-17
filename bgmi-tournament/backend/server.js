@@ -73,24 +73,6 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/users', require('./routes/users'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-// Test email — visit this URL in browser to send a test email
-app.get('/api/test-email', async (req, res) => {
-  try {
-    const { sendRoomDetails } = require('./utils/email');
-    await sendRoomDetails({
-      to: process.env.EMAIL_USER,
-      name: 'Admin Test',
-      tournament: { title: 'Test Tournament', type: 'squad', map: 'Erangel', scheduledAt: new Date() },
-      roomId: 'TEST123',
-      roomPassword: 'test456',
-      slotNumber: 1
-    });
-    res.json({ success: true, message: `Test email sent to ${process.env.EMAIL_USER}` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
