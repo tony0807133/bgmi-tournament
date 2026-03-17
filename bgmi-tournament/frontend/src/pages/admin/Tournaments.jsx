@@ -13,18 +13,10 @@ const statusConfig = {
 export default function AdminTournaments() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [screenshotCounts, setScreenshotCounts] = useState({});
 
   const fetchTournaments = () => {
     axios.get('/api/tournaments').then(r => {
       setTournaments(r.data);
-      // Fetch pending screenshot counts for ongoing/completed tournaments
-      r.data.filter(t => t.status === 'ongoing' || t.status === 'completed').forEach(t => {
-        axios.get(`/api/registrations/tournament/${t._id}`).then(res => {
-          const pending = res.data.filter(r => r.winningScreenshot && !r.screenshotVerified).length;
-          setScreenshotCounts(prev => ({ ...prev, [t._id]: pending }));
-        }).catch(() => {});
-      });
     }).finally(() => setLoading(false));
   };
 
@@ -126,13 +118,8 @@ export default function AdminTournaments() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 items-center">
-                    <Link to={`/admin/tournaments/${t._id}/registrations`} className="btn-secondary text-xs py-1.5 px-3 relative">
-                      📸 Registrations
-                      {screenshotCounts[t._id] > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-yellow-400 text-black text-[10px] font-black rounded-full flex items-center justify-center">
-                          {screenshotCounts[t._id]}
-                        </span>
-                      )}
+                    <Link to={`/admin/tournaments/${t._id}/registrations`} className="btn-secondary text-xs py-1.5 px-3">
+                      📋 Registrations
                     </Link>
                     <Link to={`/admin/tournaments/${t._id}/edit`} className="btn-secondary text-xs py-1.5 px-3">
                       Edit
