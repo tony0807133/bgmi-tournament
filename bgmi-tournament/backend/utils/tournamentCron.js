@@ -1,16 +1,51 @@
 const cron = require('node-cron');
 const Tournament = require('../models/Tournament');
 const Registration = require('../models/Registration');
-const { sendReminderEmail } = require('./email');
+const { sendReminderEmail, sendRoomDetails } = require('./email');
 
 async function autoUpdateStatuses() {
   const now = new Date();
 
-  // upcoming → ongoing: scheduledAt has passed
+  // Find tournaments about to go ongoing (before bulk update, so we can email them)
+  const goingOnline = await Tournament.find({
+    status: 'upcoming',
+    scheduledAt: { $lte: now },
+    roomId: { $ne: '' },
+    ongoingEmailSent: { $ne: true }
+  });
+
+  // upcoming → ongoing
   const toOngoing = await Tournament.updateMany(
     { status: 'upcoming', scheduledAt: { $lte: now } },
     { $set: { status: 'ongoing' } }
   );
+
+  // Send room details email to all paid registrants for newly-ongoing tournaments
+  for (const tournament of goingOnline) {
+    try {
+      const registrations = await Registration.find({
+        tournament: tournament._id,
+        paymentStatus: 'paid'
+      }).populate('teamLeader', 'name email');
+
+      const emailPromises = registrations.map(reg =>
+        sendRoomDetails({
+          to: reg.teamLeader.email,
+          name: reg.teamLeader.name,
+          tournament,
+          roomId: tournament.roomId,
+          roomPassword: tournament.roomPassword,
+          slotNumber: reg.slotNumber
+        }).catch(err => console.error(`[OngoingEmail] Failed for ${reg.teamLeader.email}:`, err.message))
+      );
+
+      await Promise.all(emailPromises);
+      await Tournament.findByIdAndUpdate(tournament._id, { ongoingEmailSent: true });
+      console.log(`[OngoingEmail] Sent room details to ${registrations.length} players for: ${tournament.title}`);
+    } catch (err) {
+      console.error(`[OngoingEmail] Error for tournament ${tournament._id}:`, err.message);
+    }
+  }
 
   // ongoing → completed: 3 hours after scheduledAt
   const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000);

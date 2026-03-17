@@ -174,7 +174,9 @@ router.get('/check/:tournamentId', protect, async (req, res) => {
 // Get my registrations
 router.get('/my', protect, async (req, res) => {
   try {
-    const regs = await Registration.find({ teamLeader: req.user._id }).populate('tournament');
+    const regs = await Registration.find({ teamLeader: req.user._id })
+      .populate('tournament')
+      .sort({ createdAt: -1 });
     res.json(regs);
   } catch (err) {
     res.status(500).json({ message: err.message });
