@@ -74,32 +74,7 @@ app.use('/api/users', require('./routes/users'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-app.get('/api/test-email', async (req, res) => {
-  // Show config first without waiting for SMTP
-  const config = {
-    user: process.env.BREVO_USER || 'NOT SET',
-    keySet: !!process.env.BREVO_SMTP_KEY,
-    keyLength: (process.env.BREVO_SMTP_KEY || '').length,
-    keyLengthCleaned: (process.env.BREVO_SMTP_KEY || '').replace(/\s+/g, '').length
-  };
-  try {
-    const { sendRoomDetails } = require('./utils/email');
-    const emailPromise = sendRoomDetails({
-      to: 'spalande092@gmail.com',
-      name: 'Test',
-      tournament: { title: 'Test', type: 'squad', map: 'Erangel', scheduledAt: new Date() },
-      roomId: '123456', roomPassword: 'test123', slotNumber: 1
-    });
-    // 15 second timeout
-    await Promise.race([
-      emailPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP timeout after 15s — port blocked by Render')), 15000))
-    ]);
-    res.json({ ok: true, sentTo: process.env.BREVO_USER, config });
-  } catch (err) {
-    res.json({ ok: false, error: err.message, config });
-  }
-});
+
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
