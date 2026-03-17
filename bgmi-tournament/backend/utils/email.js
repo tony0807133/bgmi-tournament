@@ -1,10 +1,26 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = 'BGMI Arena <onboarding@resend.dev>';
+// Brevo (Sendinblue) SMTP — works on all cloud servers, sends to any email
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_USER,   // your Brevo login email
+    pass: process.env.BREVO_SMTP_KEY // Brevo SMTP key (not your password)
+  }
+});
+
+transporter.verify().then(() => {
+  console.log('[Email] Brevo SMTP verified ✓');
+}).catch(err => {
+  console.warn('[Email] Brevo SMTP failed:', err.message);
+});
+
+const FROM = `"BGMI Arena" <${process.env.BREVO_USER}>`;
 
 exports.sendRoomDetails = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: `🎮 Room Details: ${tournament.title} — Match Starting Soon!`,
@@ -56,7 +72,7 @@ exports.sendRoomDetails = async ({ to, name, tournament, roomId, roomPassword, s
 };
 
 exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: `💰 Refund: ₹${amount} credited — ${tournament.title}`,
@@ -77,7 +93,7 @@ exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
     <p>Hey <strong>${name}</strong>,</p>
     <p>The tournament <strong>${tournament.title}</strong> was cancelled. Your entry fee has been refunded to your wallet.</p>
     <div class="amt">₹${amount} Credited</div>
-    <p style="color:#9ca3af;font-size:13px">Available in your wallet now. Use it for future tournaments anytime.</p>
+    <p style="color:#9ca3af;font-size:13px">Available in your wallet now.</p>
   </div>
   <div class="ftr">BGMI Arena</div>
 </div>
@@ -86,7 +102,7 @@ exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
 };
 
 exports.sendReminderEmail = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
-  await resend.emails.send({
+  await transporter.sendMail({
     from: FROM,
     to,
     subject: `⚡ 15 Min Reminder: ${tournament.title} — Join Now!`,
