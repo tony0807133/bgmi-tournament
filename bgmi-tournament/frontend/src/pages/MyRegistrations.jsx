@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -12,12 +12,19 @@ export default function MyRegistrations() {
   const [regs, setRegs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchRegs = useCallback(() => {
     axios.get('/api/registrations/my')
       .then(r => setRegs(r.data))
       .catch(() => toast.error('Failed to load registrations'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchRegs();
+    // Auto-refresh every 30 seconds so room details appear without manual reload
+    const interval = setInterval(fetchRegs, 30000);
+    return () => clearInterval(interval);
+  }, [fetchRegs]);
 
   const copy = (text, label) => {
     navigator.clipboard.writeText(text);
@@ -32,9 +39,14 @@ export default function MyRegistrations() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black">My Registrations</h1>
-        <p className="text-gray-500 text-sm mt-1">{regs.length} total registrations</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black">My Registrations</h1>
+          <p className="text-gray-500 text-sm mt-1">{regs.length} total registrations</p>
+        </div>
+        <button onClick={fetchRegs} className="btn-secondary text-xs py-1.5 px-3">
+          🔄 Refresh
+        </button>
       </div>
 
       {regs.length === 0 ? (
@@ -50,11 +62,12 @@ export default function MyRegistrations() {
             const t = reg.tournament;
             const isLive = t?.status === 'ongoing';
             const isCompleted = t?.status === 'completed';
-            // Show room if roomId is set AND (admin sent it OR tournament is ongoing/completed)
-            const roomAvailable = t?.roomId?.trim() && (t?.roomSent || isLive || isCompleted);
+            // Show room if roomId is set AND admin has sent it OR tournament is live/completed
+            const hasRoom = t?.roomId && t.roomId.trim() !== '';
+            const roomAvailable = hasRoom && (t?.roomSent || isLive || isCompleted);
 
             return (
-              <div key={reg._id} className={`card transition-all ${isLive ? 'border-green-500/20' : ''}`}>
+              <div key={reg._id} className={`card transition-all ${isLive ? 'border-green-500/30 shadow-green-500/5 shadow-lg' : ''}`}>
                 {/* Header */}
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                   <div>
@@ -66,7 +79,11 @@ export default function MyRegistrations() {
                       {t?.scheduledAt && (
                         <>
                           <span className="text-gray-600">•</span>
-                          <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</span>
+                          <span>📅 {new Date(t.scheduledAt).toLocaleString('en-IN', {
+                            day: 'numeric', month: 'short',
+                            hour: '2-digit', minute: '2-digit',
+                            hour12: true, timeZone: 'Asia/Kolkata'
+                          })}</span>
                         </>
                       )}
                     </div>
@@ -98,7 +115,7 @@ export default function MyRegistrations() {
                   </div>
                 </div>
 
-                {/* Room details — shown when admin has sent room */}
+                {/* Room details */}
                 {roomAvailable && reg.paymentStatus === 'paid' && (
                   <div className="bg-orange-500/5 border border-orange-500/25 rounded-xl p-4 mb-4">
                     <p className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -131,13 +148,13 @@ export default function MyRegistrations() {
                   </div>
                 )}
 
-                {/* Upcoming/Ongoing — waiting for room */}
-                {(t?.status === 'upcoming' || t?.status === 'ongoing') && reg.paymentStatus === 'paid' && !roomAvailable && (
+                {/* Waiting for room */}
+                {!roomAvailable && reg.paymentStatus === 'paid' && (t?.status === 'upcoming' || t?.status === 'ongoing') && (
                   <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3 mb-4">
                     <p className="text-blue-400 font-bold text-sm flex items-center gap-2">
                       <span>⏳</span> Waiting for room details
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">Room ID & password will appear here once admin sends them</p>
+                    <p className="text-xs text-gray-500 mt-1">Room ID & password will appear here once admin sends them. Page auto-refreshes every 30s.</p>
                   </div>
                 )}
 

@@ -124,28 +124,47 @@ router.post('/:id/send-room', protect, adminOnly, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
     const tournament = await Tournament.findById(req.params.id);
     if (!tournament) return res.status(404).json({ message: 'Tournament not found' });
-    if (!tournament.roomId || !tournament.roomPassword)
-      return res.status(400).json({ message: 'Set room ID and password first' });
+
+    const roomId = (tournament.roomId || '').trim();
+    const roomPassword = (tournament.roomPassword || '').trim();
+
+    if (!roomId || !roomPassword)
+      return res.status(400).json({ message: 'Please set Room ID and Password in Edit Tournament first, then click Send Room.' });
 
     const registrations = await Registration.find({
       tournament: req.params.id,
       paymentStatus: 'paid'
     }).populate('teamLeader', 'name email');
 
-    const emailPromises = registrations.map(reg =>
-      sendRoomDetails({
-        to: reg.teamLeader.email,
-        name: reg.teamLeader.name,
-        tournament,
-        roomId: tournament.roomId,
-        roomPassword: tournament.roomPassword,
-        slotNumber: reg.slotNumber
-      }).catch(err => console.error(`[Email] Failed to send to ${reg.teamLeader.email}:`, err.message))
-    );
-    await Promise.all(emailPromises);
+    let sent = 0;
+    let failed = 0;
+    for (const reg of registrations) {
+      try {
+        await sendRoomDetails({
+          to: reg.teamLeader.email,
+          name: reg.teamLeader.name,
+          tournament,
+          roomId,
+          roomPassword,
+          slotNumber: reg.slotNumber
+        });
+        sent++;
+      } catch (err) {
+        failed++;
+        console.error(`[SendRoom] Email failed for ${reg.teamLeader.email}:`, err.message);
+      }
+    }
+
+    // Always mark roomSent so users can see room on their page
     await Tournament.findByIdAndUpdate(req.params.id, { roomSent: true, ongoingEmailSent: true });
-    res.json({ message: `Room details sent to ${registrations.length} teams` });
+
+    res.json({
+      message: registrations.length === 0
+        ? 'Room marked as sent. No paid registrations to email yet.'
+        : `Room details sent to ${sent}/${registrations.length} players.${failed > 0 ? ` ${failed} failed (check server logs).` : ''}`
+    });
   } catch (err) {
+    console.error('[SendRoom] Error:', err);
     res.status(500).json({ message: err.message });
   }
 });

@@ -1,15 +1,21 @@
 const nodemailer = require('nodemailer');
 
+// Gmail app password may have spaces — strip them
+const emailPass = (process.env.EMAIL_PASSWORD || '').replace(/\s/g, '');
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD }
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: emailPass
+  }
 });
 
 // Verify connection on startup (non-fatal)
 transporter.verify().then(() => {
-  console.log('[Email] SMTP connection verified');
+  console.log('[Email] SMTP connection verified ✓');
 }).catch(err => {
-  console.warn('[Email] SMTP connection failed — emails will not send:', err.message);
+  console.warn('[Email] SMTP connection failed:', err.message);
 });
 
 exports.sendRoomDetails = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
