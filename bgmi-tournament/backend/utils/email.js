@@ -1,14 +1,17 @@
 const nodemailer = require('nodemailer');
 
-// Brevo (Sendinblue) SMTP — works on all cloud servers, sends to any email
+// Brevo SMTP on port 465 (SSL) — more reliable on cloud servers
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.BREVO_USER,   // your Brevo login email
-    pass: process.env.BREVO_SMTP_KEY // Brevo SMTP key (not your password)
-  }
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_SMTP_KEY
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 });
 
 transporter.verify().then(() => {
