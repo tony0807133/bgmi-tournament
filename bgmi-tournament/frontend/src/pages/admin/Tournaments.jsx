@@ -40,14 +40,18 @@ export default function AdminTournaments() {
       await axios.put(`/api/tournaments/${roomModal.id}`, {
         roomId: roomModal.roomId.trim(),
         roomPassword: roomModal.roomPassword.trim()
-      });
+      }, { timeout: 15000 });
       // Then send emails
-      const { data } = await axios.post(`/api/tournaments/${roomModal.id}/send-room`);
+      const { data } = await axios.post(`/api/tournaments/${roomModal.id}/send-room`, {}, { timeout: 30000 });
       toast.success(data.message);
       setRoomModal(null);
       fetchTournaments();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send room');
+      if (err.code === 'ECONNABORTED') {
+        toast.error('Request timed out — Render may be waking up. Try again in 30 seconds.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to send room');
+      }
     } finally {
       setSending(false);
     }
