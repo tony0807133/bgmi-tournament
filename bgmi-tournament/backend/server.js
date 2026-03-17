@@ -85,7 +85,7 @@ app.get('/api/test-email', async (req, res) => {
   try {
     const { sendRoomDetails } = require('./utils/email');
     const emailPromise = sendRoomDetails({
-      to: 'delivered@resend.dev', // Resend test address — always succeeds
+      to: 'spalande092@gmail.com',
       name: 'Test',
       tournament: { title: 'Test', type: 'squad', map: 'Erangel', scheduledAt: new Date() },
       roomId: '123456', roomPassword: 'test123', slotNumber: 1
