@@ -10,13 +10,18 @@ export default function AdminRegistrations() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    const [t, r] = await Promise.all([
-      axios.get(`/api/tournaments/${id}`),
-      axios.get(`/api/registrations/tournament/${id}`)
-    ]);
-    setTournament(t.data);
-    setRegs(r.data);
-    setLoading(false);
+    try {
+      const [t, r] = await Promise.all([
+        axios.get(`/api/tournaments/${id}`),
+        axios.get(`/api/registrations/tournament/${id}`)
+      ]);
+      setTournament(t.data);
+      setRegs(r.data);
+    } catch {
+      toast.error('Failed to load registrations');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, [id]);

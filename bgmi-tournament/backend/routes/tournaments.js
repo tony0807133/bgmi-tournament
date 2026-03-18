@@ -108,10 +108,13 @@ router.post('/', protect, adminOnly, upload.single('banner'), async (req, res) =
 });
 
 // Admin: Update tournament
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, adminOnly, upload.single('banner'), async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
-    const tournament = await Tournament.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const data = { ...req.body };
+    if (req.file) data.banner = req.file.path;
+    if (typeof data.prizes === 'string') data.prizes = JSON.parse(data.prizes);
+    const tournament = await Tournament.findByIdAndUpdate(req.params.id, data, { new: true });
     res.json(tournament);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -157,7 +157,17 @@ export default function TournamentForm() {
       };
 
       if (isEdit) {
-        await axios.put(`/api/tournaments/${id}`, payload);
+        if (banner) {
+          // If new banner selected, send as FormData
+          const fd = new FormData();
+          Object.entries(payload).forEach(([k, v]) => {
+            fd.append(k, k === 'prizes' ? JSON.stringify(v) : v);
+          });
+          fd.append('banner', banner);
+          await axios.put(`/api/tournaments/${id}`, fd);
+        } else {
+          await axios.put(`/api/tournaments/${id}`, payload);
+        }
       } else {
         const fd = new FormData();
         Object.entries(payload).forEach(([k, v]) => {
@@ -327,9 +337,9 @@ export default function TournamentForm() {
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Scheduled At</label>
             <input className="input" type="datetime-local" {...f('scheduledAt')} required />
           </div>
-          {!isEdit && (
+          {(
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Banner Image</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Banner Image {isEdit && <span className="text-gray-600 normal-case font-normal">(leave empty to keep current)</span>}</label>
               <input type="file" accept="image/*" className="input" onChange={e => setBanner(e.target.files[0])} />
             </div>
           )}

@@ -71,7 +71,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
     if (!user.password || user.password === '')
-      return res.status(400).json({ message: 'This account uses Google login — please contact support' });
+      return res.status(400).json({ message: 'Account has no password set — please contact support' });
     if (!(await bcrypt.compare(password, user.password)))
       return res.status(400).json({ message: 'Invalid credentials' });
 

@@ -77,6 +77,7 @@ router.put('/admin/withdrawals/:id', protect, adminOnly, async (req, res) => {
     const { status, adminNote } = req.body;
     const withdrawal = await Withdrawal.findById(req.params.id).populate('user');
     if (!withdrawal) return res.status(404).json({ message: 'Not found' });
+    if (withdrawal.status !== 'pending') return res.status(400).json({ message: 'Already processed' });
 
     // If rejected, refund to wallet
     if (status === 'rejected') {
