@@ -77,8 +77,10 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('[Error]', err.stack);
-  // Never leak stack traces or internal messages to client in production
+  console.error('[Error]', err.message);
+  // Pass multer errors (file size, file type) as 400 with readable message
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ message: 'File too large — max 5MB' });
+  if (err.message === 'Only images allowed') return res.status(400).json({ message: 'Only image files are allowed' });
   const isProd = process.env.NODE_ENV === 'production';
   res.status(err.status || 500).json({
     message: isProd ? 'Internal server error' : (err.message || 'Internal server error')

@@ -7,6 +7,13 @@ const Transaction = require('../models/Transaction');
 const Deposit = require('../models/Deposit');
 const { protect, adminOnly } = require('../middleware/auth');
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const MAX_WITHDRAW = 50000;
 const UPI_REGEX = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/;
 
@@ -66,11 +73,19 @@ router.post('/deposit', protect, upload.single('screenshot'), async (req, res) =
       return res.status(400).json({ message: 'Deposit must be ₹10–₹50,000' });
     if (!req.file) return res.status(400).json({ message: 'Payment screenshot is required' });
 
-    const result = await uploadToCloudinary(req.file.buffer, 'bgmi-deposits');
+    let screenshotUrl;
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, 'bgmi-deposits');
+      screenshotUrl = result.secure_url;
+    } catch (uploadErr) {
+      console.error('[Deposit] Cloudinary upload failed:', uploadErr.message);
+      return res.status(500).json({ message: 'Screenshot upload failed. Please try again.' });
+    }
+
     const deposit = await Deposit.create({
       user: req.user._id,
       amount,
-      screenshotUrl: result.secure_url,
+      screenshotUrl,
       utrNumber
     });
     res.status(201).json({ message: 'Deposit request submitted! Admin will verify shortly.', deposit });
