@@ -1,0 +1,12 @@
+[build]
+  base    = "bgmi-tournament/frontend"
+  command = "npm run build"
+  publish = "bgmi-tournament/frontend/dist"
+
+[build.environment]
+  VITE_API_URL = "https://bgmi-backend-2cnu.onrender.com"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
