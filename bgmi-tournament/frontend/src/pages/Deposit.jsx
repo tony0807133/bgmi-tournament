@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const ADMIN_UPI_ID = 'spalande092@oksbi';
-const ADMIN_UPI_NAME = 'BGMI Arena';
 const QUICK_AMOUNTS = [49, 99, 199, 499, 999];
-
-const getQrUrl = (amount) => {
-  const upi = amount
-    ? `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(ADMIN_UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('BGMI Arena Wallet')}`
-    : `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(ADMIN_UPI_NAME)}&cu=INR`;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(upi)}`;
-};
-
 const STEPS = ['Enter Amount', 'Pay via UPI', 'Upload Proof'];
+
+const getQrUrl = (upiId, upiName, amount) => {
+  const data = amount
+    ? `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('BGMI Arena Wallet')}`
+    : `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(data)}`;
+};
 
 export default function Deposit() {
   const navigate = useNavigate();
+  const [settings, setSettings] = useState(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [step, setStep] = useState(0);
   const [amount, setAmount] = useState('');
   const [utrNumber, setUtrNumber] = useState('');
@@ -26,8 +25,15 @@ export default function Deposit() {
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    axios.get('/api/wallet/settings')
+      .then(r => setSettings(r.data))
+      .catch(() => toast.error('Failed to load payment details'))
+      .finally(() => setLoadingSettings(false));
+  }, []);
+
   const copyUpi = () => {
-    navigator.clipboard.writeText(ADMIN_UPI_ID);
+    navigator.clipboard.writeText(settings.upiId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -59,9 +65,27 @@ export default function Deposit() {
     }
   };
 
+  if (loadingSettings) return (
+    <div className="flex justify-center items-center py-32">
+      <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+    </div>
+  );
+
+  if (!settings?.upiId) return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <div className="text-center">
+        <div className="text-5xl mb-4">⚙️</div>
+        <p className="text-gray-400 font-semibold mb-2">Payment not configured</p>
+        <p className="text-gray-600 text-sm mb-4">Admin hasn't set up the UPI ID yet. Please try again later.</p>
+        <Link to="/wallet" className="btn-primary">Back to Wallet</Link>
+      </div>
+    </div>
+  );
+
+  const qrUrl = settings.upiQrUrl || getQrUrl(settings.upiId, settings.upiName, amount);
+
   return (
     <div className="min-h-[90vh] flex items-center justify-center px-4 py-10 relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 bg-hero-gradient pointer-events-none" />
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -76,7 +100,7 @@ export default function Deposit() {
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-0 mb-8">
+        <div className="flex items-center justify-center mb-8">
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
               <div className="flex flex-col items-center gap-1">
@@ -96,58 +120,45 @@ export default function Deposit() {
           ))}
         </div>
 
-        {/* ── STEP 0: Enter Amount ── */}
+        {/* STEP 0 — Enter Amount */}
         {step === 0 && (
           <div className="card glow-orange">
             <h2 className="font-bold text-lg mb-1">How much to add?</h2>
             <p className="text-gray-500 text-xs mb-5">Min ₹10 · Max ₹50,000</p>
-
             <div className="grid grid-cols-5 gap-2 mb-4">
               {QUICK_AMOUNTS.map(a => (
-                <button key={a} type="button"
-                  onClick={() => setAmount(String(a))}
+                <button key={a} type="button" onClick={() => setAmount(String(a))}
                   className={`py-2.5 rounded-xl text-sm font-black border transition-all ${
                     amount === String(a)
                       ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20'
                       : 'bg-white/5 border-white/10 text-gray-300 hover:border-orange-500/40 hover:text-white'
-                  }`}>
-                  ₹{a}
-                </button>
+                  }`}>₹{a}</button>
               ))}
             </div>
-
             <div className="relative mb-6">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg">₹</span>
-              <input
-                className="input pl-9 text-xl font-black h-14"
-                type="number" min="10" max="50000" placeholder="0"
-                value={amount} onChange={e => setAmount(e.target.value)}
-              />
+              <input className="input pl-9 text-xl font-black h-14" type="number" min="10" max="50000"
+                placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
-
-            <button
-              onClick={() => {
-                const amt = Number(amount);
-                if (!amt || amt < 10) { toast.error('Minimum deposit is ₹10'); return; }
-                if (amt > 50000) { toast.error('Maximum deposit is ₹50,000'); return; }
-                setStep(1);
-              }}
-              className="btn-primary w-full py-3.5 text-base"
-            >
+            <button onClick={() => {
+              const amt = Number(amount);
+              if (!amt || amt < 10) { toast.error('Minimum deposit is ₹10'); return; }
+              if (amt > 50000) { toast.error('Maximum deposit is ₹50,000'); return; }
+              setStep(1);
+            }} className="btn-primary w-full py-3.5 text-base">
               Continue →
             </button>
-
             <div className="mt-4 text-center">
               <Link to="/wallet" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Back to Wallet</Link>
             </div>
           </div>
         )}
 
-        {/* ── STEP 1: Pay via UPI ── */}
+        {/* STEP 1 — Pay via UPI */}
         {step === 1 && (
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg">Pay ₹{amount} via UPI</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-bold text-lg">Pay via UPI</h2>
               <span className="text-2xl font-black text-green-400">₹{amount}</span>
             </div>
 
@@ -155,17 +166,14 @@ export default function Deposit() {
             <div className="flex flex-col items-center mb-5">
               <div className="relative">
                 <div className="w-52 h-52 bg-white rounded-2xl p-2 shadow-2xl shadow-black/40">
-                  <img
-                    src={getQrUrl(amount)}
-                    alt="UPI QR Code"
-                    className="w-full h-full object-contain rounded-xl"
-                  />
+                  <img src={settings.upiQrUrl || getQrUrl(settings.upiId, settings.upiName, amount)}
+                    alt="UPI QR Code" className="w-full h-full object-contain rounded-xl" />
                 </div>
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg">
                   ₹{amount} pre-filled
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-6">Scan with any UPI app</p>
+              <p className="text-xs text-gray-500 mt-6">Scan with GPay, PhonePe, Paytm, BHIM or any UPI app</p>
             </div>
 
             {/* Divider */}
@@ -180,25 +188,16 @@ export default function Deposit() {
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">UPI ID</p>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-black text-white font-mono">{ADMIN_UPI_ID}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{ADMIN_UPI_NAME}</p>
+                  <p className="text-base font-black text-white font-mono">{settings.upiId}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{settings.upiName}</p>
                 </div>
-                <button
-                  onClick={copyUpi}
+                <button onClick={copyUpi}
                   className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
                     copied ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-white/5 border-white/10 text-gray-300 hover:border-orange-500/40 hover:text-white'
-                  }`}
-                >
+                  }`}>
                   {copied ? '✓ Copied' : 'Copy'}
                 </button>
               </div>
-            </div>
-
-            {/* Supported apps */}
-            <div className="flex items-center justify-center gap-3 mb-5">
-              {['GPay', 'PhonePe', 'Paytm', 'BHIM'].map(app => (
-                <span key={app} className="text-xs text-gray-600 bg-white/5 px-2 py-1 rounded-lg">{app}</span>
-              ))}
             </div>
 
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-5 flex gap-2">
@@ -208,18 +207,17 @@ export default function Deposit() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep(0)} className="btn-secondary flex-1 py-3">← Back</button>
-              <button onClick={() => setStep(2)} className="btn-primary flex-2 py-3 flex-1">I've Paid →</button>
+              <button onClick={() => setStep(2)} className="btn-primary flex-1 py-3">I've Paid →</button>
             </div>
           </div>
         )}
 
-        {/* ── STEP 2: Upload Proof ── */}
+        {/* STEP 2 — Upload Proof */}
         {step === 2 && (
           <div className="card">
             <h2 className="font-bold text-lg mb-1">Upload Payment Proof</h2>
             <p className="text-gray-500 text-xs mb-5">Screenshot of your ₹{amount} payment</p>
 
-            {/* Screenshot upload */}
             <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 cursor-pointer transition-all mb-4 ${
               screenshotPreview ? 'border-green-500/40 bg-green-500/5' : 'border-white/10 hover:border-orange-500/40 hover:bg-white/3'
             }`}>
@@ -245,46 +243,33 @@ export default function Deposit() {
               </button>
             )}
 
-            {/* UTR */}
             <div className="mb-5">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                UTR / Transaction ID <span className="text-gray-600 normal-case font-normal">(optional but speeds up approval)</span>
+                UTR / Transaction ID <span className="text-gray-600 normal-case font-normal">(optional — speeds up approval)</span>
               </label>
-              <input
-                className="input font-mono"
-                placeholder="e.g. 425612345678"
-                value={utrNumber}
-                onChange={e => setUtrNumber(e.target.value)}
-              />
+              <input className="input font-mono" placeholder="e.g. 425612345678"
+                value={utrNumber} onChange={e => setUtrNumber(e.target.value)} />
             </div>
 
             {/* Summary */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-5 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Amount</span>
-                <span className="font-black text-green-400">₹{amount}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Paid to</span>
-                <span className="font-mono text-gray-300 text-xs">{ADMIN_UPI_ID}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Credited to</span>
-                <span className="text-gray-300">Your wallet</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Processing time</span>
-                <span className="text-yellow-400">Within a few hours</span>
-              </div>
+              {[
+                ['Amount', `₹${amount}`, 'text-green-400'],
+                ['Paid to', settings.upiId, 'text-gray-300 font-mono text-xs'],
+                ['Credited to', 'Your wallet', 'text-gray-300'],
+                ['Processing time', 'Within a few hours', 'text-yellow-400'],
+              ].map(([label, val, cls]) => (
+                <div key={label} className="flex justify-between text-sm">
+                  <span className="text-gray-400">{label}</span>
+                  <span className={`font-bold ${cls}`}>{val}</span>
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="btn-secondary flex-1 py-3">← Back</button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !screenshot}
-                className="btn-primary flex-1 py-3 disabled:opacity-50"
-              >
+              <button onClick={handleSubmit} disabled={submitting || !screenshot}
+                className="btn-primary flex-1 py-3 disabled:opacity-50">
                 {submitting ? (
                   <span className="flex items-center gap-2 justify-center">
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>

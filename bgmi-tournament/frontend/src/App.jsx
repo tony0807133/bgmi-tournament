@@ -18,6 +18,7 @@ import AdminRegistrations from './pages/admin/Registrations';
 import AdminWithdrawals from './pages/admin/Withdrawals';
 import AdminUsers from './pages/admin/Users';
 import AdminDeposits from './pages/admin/Deposits';
+import AdminSettings from './pages/admin/Settings';
 import AuthCallback from './pages/AuthCallback';
 import Download from './pages/Download';
 import Leaderboard from './pages/Leaderboard';
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/admin/tournaments/:id/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
           <Route path="/admin/deposits" element={<AdminRoute><AdminDeposits /></AdminRoute>} />
+          <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
           <Route path="/download" element={<Download />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

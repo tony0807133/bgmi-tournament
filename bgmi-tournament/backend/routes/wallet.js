@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Withdrawal = require('../models/Withdrawal');
 const Transaction = require('../models/Transaction');
 const Deposit = require('../models/Deposit');
+const Settings = require('../models/Settings');
 const { protect, adminOnly } = require('../middleware/auth');
 
 // Configure Cloudinary
@@ -36,6 +37,38 @@ const uploadToCloudinary = (buffer, folder) =>
     );
     stream.end(buffer);
   });
+
+// ── Public: Get payment settings (UPI ID etc.) ───────────────────────────────
+router.get('/settings', async (req, res) => {
+  try {
+    const s = await Settings.findOne({ key: 'global' });
+    res.json(s || { upiId: '', upiName: 'BGMI Arena', upiQrUrl: '' });
+  } catch (err) {
+    console.error('[Settings]', err.message);
+    res.status(500).json({ message: 'Failed to load settings' });
+  }
+});
+
+// ── Admin: Update payment settings ───────────────────────────────────────────
+router.put('/admin/settings', protect, adminOnly, async (req, res) => {
+  try {
+    const upiId   = String(req.body.upiId   || '').trim().slice(0, 100);
+    const upiName = String(req.body.upiName || 'BGMI Arena').trim().slice(0, 60);
+    const upiQrUrl = String(req.body.upiQrUrl || '').trim().slice(0, 500);
+
+    if (!upiId) return res.status(400).json({ message: 'UPI ID is required' });
+
+    const s = await Settings.findOneAndUpdate(
+      { key: 'global' },
+      { upiId, upiName, upiQrUrl, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json(s);
+  } catch (err) {
+    console.error('[AdminSettings]', err.message);
+    res.status(500).json({ message: 'Failed to update settings' });
+  }
+});
 
 // ── Get wallet balance + transactions ─────────────────────────────────────────
 router.get('/', protect, async (req, res) => {

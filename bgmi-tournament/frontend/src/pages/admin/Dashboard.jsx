@@ -102,6 +102,7 @@ export default function AdminDashboard() {
           { label: 'Withdrawals', link: '/admin/withdrawals', icon: '💸', desc: `${pending} pending`, alert: pending > 0 },
           { label: 'Deposits', link: '/admin/deposits', icon: '📥', desc: `${pendingDeposits} pending`, alert: pendingDeposits > 0 },
           { label: 'New Tournament', link: '/admin/tournaments/new', icon: '➕', desc: 'Create a new match' },
+          { label: 'Payment Settings', link: '/admin/settings', icon: '⚙️', desc: 'UPI ID & QR code' },
         ].map(q => (
           <Link key={q.label} to={q.link}
             className={`card hover:border-orange-500/30 transition-all duration-200 group ${q.alert ? 'border-red-500/30' : ''}`}>
