@@ -22,7 +22,7 @@ app.use(helmet({
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    // Google OAuth redirects have no origin — always allow
+    // Server-to-server or same-origin requests have no origin
     if (!origin) return cb(null, true);
     // In dev: allow any local network IP
     if (process.env.NODE_ENV !== 'production') {
@@ -77,8 +77,12 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
+  console.error('[Error]', err.stack);
+  // Never leak stack traces or internal messages to client in production
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(err.status || 500).json({
+    message: isProd ? 'Internal server error' : (err.message || 'Internal server error')
+  });
 });
 
 // ── DB + Start ───────────────────────────────────────────────────────────────

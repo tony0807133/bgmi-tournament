@@ -19,7 +19,7 @@ router.get('/meta/leaderboard', async (req, res) => {
       .limit(50);
     res.json(players);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -64,7 +64,7 @@ router.get('/meta/analytics', protect, adminOnly, async (req, res) => {
       avgPlayersPerTournament: tournaments.length ? Math.round(registrations.length / tournaments.length) : 0
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
     const tournaments = await Tournament.find(filter).sort({ scheduledAt: 1 });
     res.json(tournaments);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -90,7 +90,7 @@ router.get('/:id', async (req, res) => {
     if (!t) return res.status(404).json({ message: 'Not found' });
     res.json(t);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -103,7 +103,7 @@ router.post('/', protect, adminOnly, upload.single('banner'), async (req, res) =
     const tournament = await Tournament.create(data);
     res.status(201).json(tournament);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -117,7 +117,7 @@ router.put('/:id', protect, adminOnly, upload.single('banner'), async (req, res)
     const tournament = await Tournament.findByIdAndUpdate(req.params.id, data, { new: true });
     res.json(tournament);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -168,7 +168,7 @@ router.post('/:id/send-room', protect, adminOnly, async (req, res) => {
     });
   } catch (err) {
     console.error('[SendRoom] Error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -204,7 +204,7 @@ router.post('/:id/refund-all', protect, adminOnly, async (req, res) => {
     await Tournament.findByIdAndUpdate(req.params.id, { status: 'cancelled' });
     res.json({ message: `Refunded ${registrations.length} registrations` });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -279,7 +279,7 @@ router.post('/:id/distribute-prizes', protect, adminOnly, async (req, res) => {
     await Tournament.findByIdAndUpdate(req.params.id, { status: 'completed' });
     res.json({ message: `Prizes distributed to ${distributed} winner(s) from ₹${actualPrizePool} pool` });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -302,8 +302,9 @@ router.post('/:id/duplicate', protect, adminOnly, async (req, res) => {
     });
     res.status(201).json(copy);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 module.exports = router;
+

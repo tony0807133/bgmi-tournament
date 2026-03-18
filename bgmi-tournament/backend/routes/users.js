@@ -4,13 +4,18 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 // Get my profile
 router.get('/me', protect, async (req, res) => {
-  res.json(req.user);
+  // req.user already has -password from auth middleware
+  // Explicitly exclude sensitive internal fields
+  const { password, googleId, __v, ...safe } = req.user.toObject();
+  res.json(safe);
 });
 
 // Update profile
 router.put('/me', protect, async (req, res) => {
   try {
     const { name, phone, bgmiId, bgmiName, upiId } = req.body;
+    if (phone && !/^\d{10}$/.test(phone.trim()))
+      return res.status(400).json({ message: 'Phone must be 10 digits' });
     const updates = {
       name: name?.trim().slice(0, 50) || req.user.name,
       phone: phone?.trim().slice(0, 15) || '',
@@ -18,10 +23,11 @@ router.put('/me', protect, async (req, res) => {
       bgmiName: bgmiName?.trim().slice(0, 30) || '',
       upiId: upiId?.trim().slice(0, 50) || ''
     };
-    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-password');
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-password -googleId -__v');
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('[UpdateProfile]', err.message);
+    res.status(500).json({ message: 'Update failed' });
   }
 });
 

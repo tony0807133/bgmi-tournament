@@ -12,9 +12,21 @@ const isStrong = (v) => v && v.length >= 6;
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, phone, bgmiId, bgmiName, referralCode } = req.body;
-    if (!name?.trim()) return res.status(400).json({ message: 'Name is required' });
-    if (!isEmail(email)) return res.status(400).json({ message: 'Invalid email' });
-    if (!isStrong(password)) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    // Input validation with length limits
+    if (!name?.trim() || name.trim().length > 50)
+      return res.status(400).json({ message: 'Name is required (max 50 chars)' });
+    if (!isEmail(email) || email.length > 100)
+      return res.status(400).json({ message: 'Invalid email' });
+    if (!isStrong(password) || password.length > 128)
+      return res.status(400).json({ message: 'Password must be 6–128 characters' });
+    if (phone && !/^\d{10}$/.test(phone.trim()))
+      return res.status(400).json({ message: 'Phone must be 10 digits' });
+    if (bgmiId && bgmiId.trim().length > 20)
+      return res.status(400).json({ message: 'BGMI ID too long' });
+    if (bgmiName && bgmiName.trim().length > 30)
+      return res.status(400).json({ message: 'BGMI Name too long' });
+
     if (await User.findOne({ email: email.toLowerCase() }))
       return res.status(400).json({ message: 'Email already exists' });
 
@@ -26,7 +38,7 @@ router.post('/register', async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 12);
     const Transaction = require('../models/Transaction');
-    const REFERRAL_BONUS = 20; // ₹20 bonus for both
+    const REFERRAL_BONUS = 20;
 
     const user = await User.create({
       name: name.trim(),
@@ -38,19 +50,18 @@ router.post('/register', async (req, res) => {
       referredBy: referrer?._id || null
     });
 
-    // Credit referral bonus to both
     if (referrer) {
       await User.findByIdAndUpdate(referrer._id, {
         $inc: { wallet: REFERRAL_BONUS, referralCount: 1 }
       });
       await Transaction.create({
         user: referrer._id, type: 'credit', amount: REFERRAL_BONUS,
-        description: `Referral bonus — ${user.name} joined using your code`
+        description: `Referral bonus — new user joined using your code`
       });
       await User.findByIdAndUpdate(user._id, { $inc: { wallet: REFERRAL_BONUS } });
       await Transaction.create({
         user: user._id, type: 'credit', amount: REFERRAL_BONUS,
-        description: `Welcome bonus — joined via referral code`
+        description: 'Welcome bonus — joined via referral code'
       });
     }
 
@@ -58,7 +69,8 @@ router.post('/register', async (req, res) => {
     delete userObj.password;
     res.status(201).json({ token: signToken(user._id), user: userObj });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('[Register]', err.message);
+    res.status(500).json({ message: 'Registration failed' });
   }
 });
 
@@ -66,7 +78,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!isEmail(email) || !password) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isEmail(email) || !password || password.length > 128)
+      return res.status(400).json({ message: 'Invalid credentials' });
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
@@ -79,7 +92,8 @@ router.post('/login', async (req, res) => {
     delete userObj.password;
     res.json({ token: signToken(user._id), user: userObj });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('[Login]', err.message);
+    res.status(500).json({ message: 'Login failed' });
   }
 });
 
