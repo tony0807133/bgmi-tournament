@@ -1,14 +1,36 @@
 const router = require('express').Router();
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
 const User = require('../models/User');
 const Withdrawal = require('../models/Withdrawal');
 const Transaction = require('../models/Transaction');
+const Deposit = require('../models/Deposit');
 const { protect, adminOnly } = require('../middleware/auth');
 
-const MAX_DEPOSIT = 50000;   // ₹50,000 per transaction
 const MAX_WITHDRAW = 50000;
 const UPI_REGEX = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/;
 
-// Get wallet balance + transactions
+// Multer — memory storage for Cloudinary upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
+    cb(null, true);
+  }
+});
+
+// Upload buffer to Cloudinary
+const uploadToCloudinary = (buffer, folder) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: 'image' },
+      (err, result) => err ? reject(err) : resolve(result)
+    );
+    stream.end(buffer);
+  });
+
+// ── Get wallet balance + transactions ─────────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('wallet upiId');
@@ -20,7 +42,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// Update UPI ID
+// ── Update UPI ID ─────────────────────────────────────────────────────────────
 router.put('/upi', protect, async (req, res) => {
   try {
     const upiId = String(req.body.upiId || '').trim().slice(0, 100);
@@ -34,7 +56,42 @@ router.put('/upi', protect, async (req, res) => {
   }
 });
 
-// Request withdrawal
+// ── Submit deposit request (with screenshot) ──────────────────────────────────
+router.post('/deposit', protect, upload.single('screenshot'), async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    const utrNumber = String(req.body.utrNumber || '').trim().slice(0, 50);
+
+    if (!Number.isInteger(amount) || amount < 10 || amount > 50000)
+      return res.status(400).json({ message: 'Deposit must be ₹10–₹50,000' });
+    if (!req.file) return res.status(400).json({ message: 'Payment screenshot is required' });
+
+    const result = await uploadToCloudinary(req.file.buffer, 'bgmi-deposits');
+    const deposit = await Deposit.create({
+      user: req.user._id,
+      amount,
+      screenshotUrl: result.secure_url,
+      utrNumber
+    });
+    res.status(201).json({ message: 'Deposit request submitted! Admin will verify shortly.', deposit });
+  } catch (err) {
+    console.error('[Deposit]', err.message);
+    res.status(500).json({ message: 'Failed to submit deposit' });
+  }
+});
+
+// ── Get my deposit requests ───────────────────────────────────────────────────
+router.get('/deposits', protect, async (req, res) => {
+  try {
+    const deposits = await Deposit.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(deposits);
+  } catch (err) {
+    console.error('[MyDeposits]', err.message);
+    res.status(500).json({ message: 'Failed to load deposits' });
+  }
+});
+
+// ── Request withdrawal ────────────────────────────────────────────────────────
 router.post('/withdraw', protect, async (req, res) => {
   try {
     const amount = Number(req.body.amount);
@@ -45,7 +102,6 @@ router.post('/withdraw', protect, async (req, res) => {
     if (!upiId || !UPI_REGEX.test(upiId))
       return res.status(400).json({ message: 'Valid UPI ID is required' });
 
-    // Atomic check-and-deduct to prevent race conditions
     const user = await User.findOneAndUpdate(
       { _id: req.user._id, wallet: { $gte: amount } },
       { $inc: { wallet: -amount } },
@@ -54,11 +110,8 @@ router.post('/withdraw', protect, async (req, res) => {
     if (!user) return res.status(400).json({ message: 'Insufficient balance' });
 
     await Transaction.create({
-      user: req.user._id,
-      type: 'debit',
-      amount,
-      description: 'Withdrawal request',
-      reference: upiId
+      user: req.user._id, type: 'debit', amount,
+      description: 'Withdrawal request', reference: upiId
     });
     const withdrawal = await Withdrawal.create({ user: req.user._id, amount, upiId });
     res.status(201).json(withdrawal);
@@ -68,7 +121,7 @@ router.post('/withdraw', protect, async (req, res) => {
   }
 });
 
-// Get my withdrawals
+// ── Get my withdrawals ────────────────────────────────────────────────────────
 router.get('/withdrawals', protect, async (req, res) => {
   try {
     const withdrawals = await Withdrawal.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -79,7 +132,48 @@ router.get('/withdrawals', protect, async (req, res) => {
   }
 });
 
-// Admin: Get all withdrawals
+// ── Admin: Get all pending deposits ──────────────────────────────────────────
+router.get('/admin/deposits', protect, adminOnly, async (req, res) => {
+  try {
+    const deposits = await Deposit.find().populate('user', 'name email phone').sort({ createdAt: -1 });
+    res.json(deposits);
+  } catch (err) {
+    console.error('[AdminDeposits]', err.message);
+    res.status(500).json({ message: 'Failed to load deposits' });
+  }
+});
+
+// ── Admin: Approve or reject deposit ─────────────────────────────────────────
+router.put('/admin/deposits/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const { status, adminNote } = req.body;
+    if (!['approved', 'rejected'].includes(status))
+      return res.status(400).json({ message: 'Invalid status' });
+
+    const deposit = await Deposit.findById(req.params.id).populate('user');
+    if (!deposit) return res.status(404).json({ message: 'Not found' });
+    if (deposit.status !== 'pending') return res.status(400).json({ message: 'Already processed' });
+
+    if (status === 'approved') {
+      await User.findByIdAndUpdate(deposit.user._id, { $inc: { wallet: deposit.amount } });
+      await Transaction.create({
+        user: deposit.user._id, type: 'credit', amount: deposit.amount,
+        description: `Wallet deposit approved`, reference: deposit._id.toString()
+      });
+    }
+
+    deposit.status = status;
+    deposit.adminNote = String(adminNote || '').slice(0, 200);
+    deposit.processedAt = new Date();
+    await deposit.save();
+    res.json(deposit);
+  } catch (err) {
+    console.error('[AdminDeposit]', err.message);
+    res.status(500).json({ message: 'Action failed' });
+  }
+});
+
+// ── Admin: Get all withdrawals ────────────────────────────────────────────────
 router.get('/admin/withdrawals', protect, adminOnly, async (req, res) => {
   try {
     const withdrawals = await Withdrawal.find().populate('user', 'name email phone').sort({ createdAt: -1 });
@@ -90,7 +184,7 @@ router.get('/admin/withdrawals', protect, adminOnly, async (req, res) => {
   }
 });
 
-// Admin: Approve or reject withdrawal
+// ── Admin: Approve or reject withdrawal ──────────────────────────────────────
 router.put('/admin/withdrawals/:id', protect, adminOnly, async (req, res) => {
   try {
     const { status, adminNote } = req.body;
@@ -104,9 +198,7 @@ router.put('/admin/withdrawals/:id', protect, adminOnly, async (req, res) => {
     if (status === 'rejected') {
       await User.findByIdAndUpdate(withdrawal.user._id, { $inc: { wallet: withdrawal.amount } });
       await Transaction.create({
-        user: withdrawal.user._id,
-        type: 'credit',
-        amount: withdrawal.amount,
+        user: withdrawal.user._id, type: 'credit', amount: withdrawal.amount,
         description: 'Withdrawal rejected — refunded to wallet',
         reference: withdrawal._id.toString()
       });
@@ -122,7 +214,7 @@ router.put('/admin/withdrawals/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
-// Admin: Add funds to user wallet
+// ── Admin: Add funds manually ─────────────────────────────────────────────────
 router.post('/admin/add-funds', protect, adminOnly, async (req, res) => {
   try {
     const { userId, amount, description } = req.body;
@@ -136,76 +228,13 @@ router.post('/admin/add-funds', protect, adminOnly, async (req, res) => {
 
     await User.findByIdAndUpdate(userId, { $inc: { wallet: parsedAmount } });
     await Transaction.create({
-      user: userId,
-      type: 'credit',
-      amount: parsedAmount,
+      user: userId, type: 'credit', amount: parsedAmount,
       description: String(description || 'Admin credit').slice(0, 100)
     });
     res.json({ message: 'Funds added' });
   } catch (err) {
     console.error('[AddFunds]', err.message);
     res.status(500).json({ message: 'Failed to add funds' });
-  }
-});
-
-// User: Create Razorpay order for wallet deposit
-router.post('/deposit/order', protect, async (req, res) => {
-  try {
-    const Razorpay = require('razorpay');
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET
-    });
-    const amount = Number(req.body.amount);
-    if (!Number.isInteger(amount) || amount < 10 || amount > MAX_DEPOSIT)
-      return res.status(400).json({ message: `Deposit must be ₹10–₹${MAX_DEPOSIT}` });
-
-    const order = await razorpay.orders.create({
-      amount: amount * 100,
-      currency: 'INR',
-      receipt: `dep_${Date.now()}`
-    });
-    res.json(order);
-  } catch (err) {
-    console.error('[DepositOrder]', err.message);
-    res.status(500).json({ message: 'Failed to create order' });
-  }
-});
-
-// User: Verify deposit and credit wallet (replay-attack protected)
-router.post('/deposit/verify', protect, async (req, res) => {
-  try {
-    const crypto = require('crypto');
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
-    const parsedAmount = Number(amount);
-
-    if (!parsedAmount || parsedAmount < 10 || parsedAmount > MAX_DEPOSIT)
-      return res.status(400).json({ message: 'Invalid amount' });
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
-      return res.status(400).json({ message: 'Missing payment fields' });
-
-    // Replay attack: check if this payment_id was already used
-    const duplicate = await Transaction.findOne({ reference: razorpay_payment_id });
-    if (duplicate) return res.status(400).json({ message: 'Payment already processed' });
-
-    const sign = razorpay_order_id + '|' + razorpay_payment_id;
-    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(sign).digest('hex');
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature)))
-      return res.status(400).json({ message: 'Payment verification failed' });
-
-    await User.findByIdAndUpdate(req.user._id, { $inc: { wallet: parsedAmount } });
-    await Transaction.create({
-      user: req.user._id,
-      type: 'credit',
-      amount: parsedAmount,
-      description: 'Wallet deposit via Razorpay',
-      reference: razorpay_payment_id
-    });
-    const user = await User.findById(req.user._id).select('wallet');
-    res.json({ message: 'Wallet credited!', wallet: user.wallet });
-  } catch (err) {
-    console.error('[DepositVerify]', err.message);
-    res.status(500).json({ message: 'Payment verification failed' });
   }
 });
 

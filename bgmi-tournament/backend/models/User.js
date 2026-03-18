@@ -22,7 +22,10 @@ const userSchema = new mongoose.Schema({
   totalWins: { type: Number, default: 0 },
   totalKills: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  // Password reset
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null }
 });
 
 // Auto-generate referral code before save

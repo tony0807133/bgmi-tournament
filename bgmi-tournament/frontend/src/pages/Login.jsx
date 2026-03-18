@@ -62,6 +62,9 @@ export default function Login() {
                   {showPass ? 'Hide' : 'Show'}
                 </button>
               </div>
+              <div className="text-right mt-1.5">
+                <Link to="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300 transition-colors">Forgot password?</Link>
+              </div>
             </div>
             <button type="submit" className="btn-primary w-full py-3 text-base mt-2" disabled={loading}>
               {loading ? (

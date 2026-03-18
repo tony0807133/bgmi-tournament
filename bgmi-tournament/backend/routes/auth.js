@@ -1,7 +1,9 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
+const { sendPasswordResetEmail } = require('../utils/email');
 
 const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -100,6 +102,56 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('[Login]', err.message);
     res.status(500).json({ message: 'Login failed' });
+  }
+});
+
+// ── Forgot Password ───────────────────────────────────────────────────────────
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!isEmail(email)) return res.status(400).json({ message: 'Invalid email' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Always respond OK to prevent email enumeration
+    if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl });
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error('[ForgotPassword]', err.message);
+    res.status(500).json({ message: 'Failed to send reset email' });
+  }
+});
+
+// ── Reset Password ────────────────────────────────────────────────────────────
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!isStrong(password) || password.length > 128)
+      return res.status(400).json({ message: 'Password must be 6–128 characters' });
+
+    const user = await User.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+    if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired' });
+
+    user.password = await bcrypt.hash(password, 12);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successful. You can now log in.' });
+  } catch (err) {
+    console.error('[ResetPassword]', err.message);
+    res.status(500).json({ message: 'Password reset failed' });
   }
 });
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -15,8 +15,8 @@ export default function TournamentDetail() {
   const [registering, setRegistering] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ teamName: '', members: [] });
-  const [payWithWallet, setPayWithWallet] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const formRef = useRef(null);
 
   const fetchTournament = () => axios.get(`/api/tournaments/${id}`).then(r => setTournament(r.data));
 
@@ -44,60 +44,32 @@ export default function TournamentDetail() {
   }, [tournament?.type, user?.bgmiName]);
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!user) return navigate('/login');
+      e.preventDefault();
+      if (!user) return navigate('/login');
 
-    // Frontend: check for duplicate BGMI IDs within the team
-    if (form.members.length > 0) {
-      const allIds = [user.bgmiId, ...form.members.map(m => m.bgmiId)].filter(Boolean).map(id => id.trim().toLowerCase());
-      const unique = new Set(allIds);
-      if (unique.size !== allIds.length) {
-        toast.error('Duplicate BGMI IDs in your team — each player must be unique');
-        return;
+      if (form.members.length > 0) {
+        const allIds = [user.bgmiId, ...form.members.map(m => m.bgmiId)].filter(Boolean).map(id => id.trim().toLowerCase());
+        const unique = new Set(allIds);
+        if (unique.size !== allIds.length) {
+          toast.error('Duplicate BGMI IDs in your team — each player must be unique');
+          return;
+        }
       }
-    }
 
-    setRegistering(true);
-    try {
-      const payload = { tournamentId: id, teamName: form.teamName, members: form.members, payWithWallet };
-
-      if (tournament.entryFee === 0 || payWithWallet) {
+      setRegistering(true);
+      try {
+        const payload = { tournamentId: id, teamName: form.teamName, members: form.members };
         await axios.post('/api/registrations', payload);
-        toast.success('Registered successfully! 🎮');
+        toast.success(tournament.entryFee === 0 ? 'Registered successfully! 🎮' : 'Registered! Entry fee deducted from wallet 🔥');
         setShowForm(false);
         setIsRegistered(true);
         await fetchTournament();
-        return;
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Registration failed');
+      } finally {
+        setRegistering(false);
       }
-
-      const { data } = await axios.post('/api/registrations', payload);
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: data.order.amount,
-        currency: 'INR',
-        name: 'BGMI Arena',
-        description: tournament.title,
-        order_id: data.order.id,
-        handler: async (response) => {
-          await axios.post('/api/registrations/verify-payment', {
-            ...response, tournamentId: id, teamName: form.teamName, members: form.members
-          });
-          toast.success('Payment successful! You\'re in 🔥');
-          setShowForm(false);
-          setIsRegistered(true);
-          await fetchTournament();
-        },
-        prefill: { name: user.name, email: user.email, contact: user.phone },
-        theme: { color: '#f97316' }
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
-    } finally {
-      setRegistering(false);
-    }
-  };
+    };
 
   const updateMember = (i, field, val) => {
     const m = [...form.members];
@@ -291,7 +263,16 @@ export default function TournamentDetail() {
                           Register Now
                         </Link>
                       ) : (
-                        <button onClick={() => setShowForm(!showForm)} className="btn-primary w-full py-3">
+                        <button
+                          onClick={() => {
+                            const opening = !showForm;
+                            setShowForm(opening);
+                            if (opening) {
+                              setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+                            }
+                          }}
+                          className="btn-primary w-full py-3"
+                        >
                           {showForm ? 'Cancel' : 'Register Now'}
                         </button>
                       )}
@@ -309,7 +290,7 @@ export default function TournamentDetail() {
 
           {/* Registration form */}
           {showForm && !isRegistered && (
-            <form onSubmit={handleRegister} className="card border-orange-500/20 space-y-4">
+            <form ref={formRef} onSubmit={handleRegister} className="card border-orange-500/20 space-y-4">
               <h3 className="font-bold">{tournament.type === 'solo' ? 'Player Details' : 'Team Details'}</h3>
 
               {tournament.type === 'solo' ? (
@@ -351,23 +332,22 @@ export default function TournamentDetail() {
               )}
 
               {tournament.entryFee > 0 && user && (
-                <label className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-white/5 cursor-pointer hover:border-orange-500/30 transition-colors">
-                  <input type="checkbox" checked={payWithWallet} onChange={e => setPayWithWallet(e.target.checked)}
-                    className="w-4 h-4 accent-orange-500 rounded" />
-                  <div>
-                    <p className="text-sm font-medium">Pay with Wallet</p>
-                    <p className="text-xs text-gray-500">Balance: <span className="text-green-400 font-bold">₹{user.wallet || 0}</span></p>
-                  </div>
-                </label>
+                <div className="p-3 bg-white/3 rounded-xl border border-white/5">
+                  <p className="text-sm font-medium">Pay from Wallet</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Balance: <span className="text-green-400 font-bold">₹{user.wallet || 0}</span> · Fee: <span className="text-orange-400 font-bold">₹{tournament.entryFee}</span></p>
+                  {(user.wallet || 0) < tournament.entryFee && (
+                    <p className="text-xs text-red-400 mt-1">Insufficient balance — <a href="/wallet" className="underline">add money to wallet</a> first</p>
+                  )}
+                </div>
               )}
 
-              <button type="submit" className="btn-primary w-full py-3" disabled={registering}>
+              <button type="submit" className="btn-primary w-full py-3" disabled={registering || ((user?.wallet || 0) < tournament.entryFee && tournament.entryFee > 0)}>
                 {registering ? (
                   <span className="flex items-center gap-2 justify-center">
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     Processing...
                   </span>
-                ) : tournament.entryFee === 0 ? 'Confirm Registration' : payWithWallet ? `Pay ₹${tournament.entryFee} from Wallet` : `Pay ₹${tournament.entryFee} via Razorpay`}
+                ) : tournament.entryFee === 0 ? 'Confirm Registration' : `Pay ₹${tournament.entryFee} from Wallet`}
               </button>
             </form>
           )}

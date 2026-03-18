@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -17,6 +17,7 @@ import AdminTournamentForm from './pages/admin/TournamentForm';
 import AdminRegistrations from './pages/admin/Registrations';
 import AdminWithdrawals from './pages/admin/Withdrawals';
 import AdminUsers from './pages/admin/Users';
+import AdminDeposits from './pages/admin/Deposits';
 import AuthCallback from './pages/AuthCallback';
 import Download from './pages/Download';
 import Leaderboard from './pages/Leaderboard';
@@ -27,6 +28,14 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -43,6 +52,7 @@ const AdminRoute = ({ children }) => {
 export default function App() {
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-1">
         <Routes>
@@ -60,6 +70,7 @@ export default function App() {
           <Route path="/admin/tournaments/:id/edit" element={<AdminRoute><AdminTournamentForm /></AdminRoute>} />
           <Route path="/admin/tournaments/:id/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
+          <Route path="/admin/deposits" element={<AdminRoute><AdminDeposits /></AdminRoute>} />
           <Route path="/download" element={<Download />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -71,6 +82,8 @@ export default function App() {
           <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
         </Routes>
       </main>
       <Footer />

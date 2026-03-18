@@ -104,3 +104,33 @@ body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;pa
 </div></body></html>`
   });
 };
+
+exports.sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
+  await resend.emails.send({
+    from: FROM, to,
+    subject: '🔐 Reset Your BGMI Arena Password',
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;padding:0}
+.wrap{max-width:600px;margin:0 auto;background:#1a1a2e;border-radius:16px;overflow:hidden}
+.hdr{background:linear-gradient(135deg,#f97316,#ef4444);padding:36px 30px;text-align:center}
+.hdr h1{margin:0;font-size:24px;letter-spacing:1px}.hdr p{margin:8px 0 0;opacity:.9;font-size:14px}
+.body{padding:30px}
+.btn{display:block;width:fit-content;margin:24px auto;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:900;font-size:16px;letter-spacing:.5px}
+.note{color:#9ca3af;font-size:12px;text-align:center;margin-top:16px}
+.warn{background:#1f1f0a;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:20px 0;color:#f59e0b;font-size:13px}
+.ftr{background:#0f0f1a;padding:16px 30px;text-align:center;color:#6b7280;font-size:12px}
+</style></head><body>
+<div class="wrap">
+<div class="hdr"><h1>🔐 Password Reset</h1><p>BGMI Arena Account Recovery</p></div>
+<div class="body">
+<p>Hey <strong>${name}</strong>,</p>
+<p>We received a request to reset your password. Click the button below to set a new one:</p>
+<a href="${resetUrl}" class="btn">Reset My Password</a>
+<div class="warn">⚠️ This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your account is safe.</div>
+<p class="note">Or copy this link: <br/><span style="color:#f97316;word-break:break-all">${resetUrl}</span></p>
+</div>
+<div class="ftr">BGMI Arena &bull; If you need help, contact spalande092@gmail.com</div>
+</div></body></html>`
+  });
+};

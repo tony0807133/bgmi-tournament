@@ -5,6 +5,7 @@ import axios from 'axios';
 export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [deposits, setDeposits] = useState([]);
   const [recentTournaments, setRecentTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,10 +13,12 @@ export default function AdminDashboard() {
     Promise.all([
       axios.get('/api/tournaments/meta/analytics'),
       axios.get('/api/wallet/admin/withdrawals'),
+      axios.get('/api/wallet/admin/deposits'),
       axios.get('/api/tournaments')
-    ]).then(([a, w, t]) => {
+    ]).then(([a, w, d, t]) => {
       setAnalytics(a.data);
       setWithdrawals(w.data);
+      setDeposits(d.data);
       setRecentTournaments(t.data.slice(0, 5));
     }).finally(() => setLoading(false));
   }, []);
@@ -27,6 +30,7 @@ export default function AdminDashboard() {
   );
 
   const pending = withdrawals.filter(w => w.status === 'pending').length;
+  const pendingDeposits = deposits.filter(d => d.status === 'pending').length;
   const a = analytics || {};
 
   const statCards = [
@@ -37,6 +41,7 @@ export default function AdminDashboard() {
     { label: 'Registered Users', value: a.totalUsers || 0, icon: '👥', sub: 'All time', link: '/admin/users', color: 'from-cyan-500/20 to-cyan-500/5' },
     { label: 'Total Registrations', value: a.totalRegistrations || 0, icon: '🎮', sub: `Avg ${a.avgPlayersPerTournament || 0}/tournament`, color: 'from-orange-500/20 to-orange-500/5' },
     { label: 'Pending Withdrawals', value: pending, icon: '💸', sub: pending > 0 ? 'Needs attention' : 'All clear', link: '/admin/withdrawals', color: pending > 0 ? 'from-red-500/20 to-red-500/5' : 'from-gray-500/20 to-gray-500/5', alert: pending > 0 },
+    { label: 'Pending Deposits', value: pendingDeposits, icon: '📥', sub: pendingDeposits > 0 ? 'Needs approval' : 'All clear', link: '/admin/deposits', color: pendingDeposits > 0 ? 'from-yellow-500/20 to-yellow-500/5' : 'from-gray-500/20 to-gray-500/5', alert: pendingDeposits > 0 },
     { label: 'Tournaments', value: a.totalTournaments || 0, icon: '🗂️', sub: `${a.upcomingTournaments || 0} upcoming · ${a.ongoingTournaments || 0} live`, link: '/admin/tournaments', color: 'from-indigo-500/20 to-indigo-500/5' },
   ];
 
@@ -95,6 +100,7 @@ export default function AdminDashboard() {
           { label: 'Manage Tournaments', link: '/admin/tournaments', icon: '🏆', desc: 'Create, edit, manage' },
           { label: 'User Management', link: '/admin/users', icon: '👥', desc: 'View & manage users' },
           { label: 'Withdrawals', link: '/admin/withdrawals', icon: '💸', desc: `${pending} pending`, alert: pending > 0 },
+          { label: 'Deposits', link: '/admin/deposits', icon: '📥', desc: `${pendingDeposits} pending`, alert: pendingDeposits > 0 },
           { label: 'New Tournament', link: '/admin/tournaments/new', icon: '➕', desc: 'Create a new match' },
         ].map(q => (
           <Link key={q.label} to={q.link}
