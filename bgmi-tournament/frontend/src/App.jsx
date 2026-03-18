@@ -30,6 +30,7 @@ import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Deposit from './pages/Deposit';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
           <Route path="/my-registrations" element={<PrivateRoute><MyRegistrations /></PrivateRoute>} />
           <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
+          <Route path="/deposit" element={<PrivateRoute><Deposit /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/tournaments" element={<AdminRoute><AdminTournaments /></AdminRoute>} />
