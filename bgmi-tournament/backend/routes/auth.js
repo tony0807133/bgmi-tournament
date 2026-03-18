@@ -30,6 +30,12 @@ router.post('/register', async (req, res) => {
     if (await User.findOne({ email: email.toLowerCase() }))
       return res.status(400).json({ message: 'Email already exists' });
 
+    // BGMI ID must be unique across all accounts
+    if (bgmiId?.trim()) {
+      if (await User.findOne({ bgmiId: bgmiId.trim() }))
+        return res.status(400).json({ message: 'This BGMI ID is already linked to another account' });
+    }
+
     // Validate referral code
     let referrer = null;
     if (referralCode?.trim()) {

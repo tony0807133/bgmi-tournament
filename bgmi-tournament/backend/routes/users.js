@@ -16,6 +16,12 @@ router.put('/me', protect, async (req, res) => {
     const { name, phone, bgmiId, bgmiName, upiId } = req.body;
     if (phone && !/^\d{10}$/.test(phone.trim()))
       return res.status(400).json({ message: 'Phone must be 10 digits' });
+
+    // BGMI ID must be unique — check no other user has it
+    if (bgmiId?.trim()) {
+      const taken = await User.findOne({ bgmiId: bgmiId.trim(), _id: { $ne: req.user._id } });
+      if (taken) return res.status(400).json({ message: 'This BGMI ID is already linked to another account' });
+    }
     const updates = {
       name: name?.trim().slice(0, 50) || req.user.name,
       phone: phone?.trim().slice(0, 15) || '',
