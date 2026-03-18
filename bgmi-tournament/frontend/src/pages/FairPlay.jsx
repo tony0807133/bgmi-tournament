@@ -74,7 +74,8 @@ export default function FairPlay() {
       </div>
 
       <p className="text-center text-gray-600 text-xs mt-8">
-        Questions? Contact us at support@bgmiarena.com
+        Questions? Contact us at{' '}
+        <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>
       </p>
     </div>
   );
