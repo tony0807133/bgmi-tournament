@@ -7,6 +7,13 @@
   VITE_API_URL = "https://bgmi-backend-2cnu.onrender.com"
 
 [[redirects]]
+  from    = "/api/*"
+  to      = "https://bgmi-backend-2cnu.onrender.com/api/:splat"
+  status  = 200
+  force   = true
+  headers = {X-Forwarded-Host = "bgmiarena.netlify.app"}
+
+[[redirects]]
   from   = "/*"
   to     = "/index.html"
   status = 200
