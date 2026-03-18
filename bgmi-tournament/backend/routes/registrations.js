@@ -23,6 +23,55 @@ const sanitizeMembers = (members) =>
       }))
     : [];
 
+// Collect all bgmiIds involved in a registration (leader + members)
+const collectBgmiIds = (leaderBgmiId, members) => {
+  const ids = [];
+  if (leaderBgmiId) ids.push(leaderBgmiId.trim().toLowerCase());
+  for (const m of members) {
+    if (m.bgmiId) ids.push(m.bgmiId.trim().toLowerCase());
+  }
+  return ids.filter(Boolean);
+};
+
+// Check if any of the given bgmiIds are already registered in this tournament
+// Checks both team leaders (via User lookup) and members array
+const checkBgmiIdConflict = async (tournamentId, bgmiIds) => {
+  if (!bgmiIds.length) return null;
+
+  // Check if any bgmiId belongs to a team leader already registered
+  const leaderUsers = await User.find({
+    bgmiId: { $in: bgmiIds.map(id => new RegExp(`^${id}$`, 'i')) }
+  }).select('_id bgmiId');
+
+  if (leaderUsers.length) {
+    const leaderIds = leaderUsers.map(u => u._id);
+    const leaderReg = await Registration.findOne({
+      tournament: tournamentId,
+      teamLeader: { $in: leaderIds },
+      paymentStatus: { $ne: 'refunded' }
+    });
+    if (leaderReg) {
+      const conflictUser = leaderUsers.find(u => u._id.equals(leaderReg.teamLeader));
+      return `BGMI ID ${conflictUser?.bgmiId} is already registered in this tournament`;
+    }
+  }
+
+  // Check if any bgmiId appears in members of existing registrations
+  const memberReg = await Registration.findOne({
+    tournament: tournamentId,
+    paymentStatus: { $ne: 'refunded' },
+    'members.bgmiId': { $in: bgmiIds.map(id => new RegExp(`^${id}$`, 'i')) }
+  });
+  if (memberReg) {
+    const conflictMember = memberReg.members.find(m =>
+      bgmiIds.some(id => id.toLowerCase() === m.bgmiId?.toLowerCase())
+    );
+    return `BGMI ID ${conflictMember?.bgmiId} is already registered in this tournament`;
+  }
+
+  return null; // no conflict
+};
+
 // Register for tournament
 router.post('/', protect, async (req, res) => {
   try {
@@ -51,9 +100,16 @@ router.post('/', protect, async (req, res) => {
     // Check duplicate after slot claim (rollback if duplicate)
     const existing = await Registration.findOne({ tournament: tournamentId, teamLeader: req.user._id });
     if (existing) {
-      // Rollback the slot increment
       await Tournament.findByIdAndUpdate(tournamentId, { $inc: { filledSlots: -1 } });
       return res.status(400).json({ message: 'Already registered' });
+    }
+
+    // Check BGMI ID uniqueness across the tournament (leader + all members)
+    const bgmiIds = collectBgmiIds(req.user.bgmiId, sanitizedMembers);
+    const conflict = await checkBgmiIdConflict(tournamentId, bgmiIds);
+    if (conflict) {
+      await Tournament.findByIdAndUpdate(tournamentId, { $inc: { filledSlots: -1 } });
+      return res.status(400).json({ message: conflict });
     }
 
     const slotNumber = tournament.filledSlots; // already incremented
@@ -137,6 +193,12 @@ router.post('/verify-payment', protect, async (req, res) => {
     const existing = await Registration.findOne({ tournament: tournamentId, teamLeader: req.user._id });
     if (existing) return res.status(400).json({ message: 'Already registered' });
 
+    // Check BGMI ID uniqueness
+    const sanitizedMembers = sanitizeMembers(members);
+    const bgmiIds = collectBgmiIds(req.user.bgmiId, sanitizedMembers);
+    const conflict = await checkBgmiIdConflict(tournamentId, bgmiIds);
+    if (conflict) return res.status(400).json({ message: conflict });
+
     // Atomic slot claim
     const tournament = await Tournament.findOneAndUpdate(
       { _id: tournamentId, status: 'upcoming', $expr: { $lt: ['$filledSlots', '$totalSlots'] } },
@@ -146,7 +208,6 @@ router.post('/verify-payment', protect, async (req, res) => {
     if (!tournament) return res.status(400).json({ message: 'Tournament full or closed' });
 
     const sanitizedTeamName = String(teamName || '').trim().slice(0, 30);
-    const sanitizedMembers = sanitizeMembers(members);
 
     const reg = await Registration.create({
       tournament: tournamentId,

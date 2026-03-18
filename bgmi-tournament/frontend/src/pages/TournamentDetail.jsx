@@ -46,6 +46,17 @@ export default function TournamentDetail() {
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!user) return navigate('/login');
+
+    // Frontend: check for duplicate BGMI IDs within the team
+    if (form.members.length > 0) {
+      const allIds = [user.bgmiId, ...form.members.map(m => m.bgmiId)].filter(Boolean).map(id => id.trim().toLowerCase());
+      const unique = new Set(allIds);
+      if (unique.size !== allIds.length) {
+        toast.error('Duplicate BGMI IDs in your team — each player must be unique');
+        return;
+      }
+    }
+
     setRegistering(true);
     try {
       const payload = { tournamentId: id, teamName: form.teamName, members: form.members, payWithWallet };
