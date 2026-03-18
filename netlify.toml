@@ -1,7 +1,7 @@
 [build]
   base    = "bgmi-tournament/frontend"
   command = "npm run build"
-  publish = "bgmi-tournament/frontend/dist"
+  publish = "dist"
 
 [build.environment]
   VITE_API_URL = "https://bgmi-backend-2cnu.onrender.com"
@@ -11,7 +11,6 @@
   to      = "https://bgmi-backend-2cnu.onrender.com/api/:splat"
   status  = 200
   force   = true
-  headers = {X-Forwarded-Host = "bgmiarena.netlify.app"}
 
 [[redirects]]
   from   = "/*"
