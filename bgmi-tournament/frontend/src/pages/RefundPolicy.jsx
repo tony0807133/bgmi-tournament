@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 export default function RefundPolicy() {
   return (
@@ -43,7 +43,7 @@ export default function RefundPolicy() {
           Wallet deposits made via Razorpay are non-refundable to the original payment method. However, your wallet balance can be withdrawn to your UPI ID at any time (subject to minimum withdrawal of ₹10).
           <br /><br />
           If a Razorpay payment is deducted but your wallet is not credited, contact us within 48 hours at{' '}
-          <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>{' '}
+          <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>{' '}
           with your payment ID and we will resolve it within 2 business days.
         </Section>
 
@@ -74,7 +74,7 @@ export default function RefundPolicy() {
             <li>Any supporting screenshots</li>
           </ul>
           <br />
-          Email: <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>
+          Email: <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>
           <br />
           We will review and respond within 3 business days.
         </Section>

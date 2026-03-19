@@ -1,4 +1,4 @@
-const { Resend } = require('resend');
+﻿const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'BGMI Arena <noreply@morse-code-trainer.com>';
@@ -32,7 +32,7 @@ const base = (headerColor, headerIcon, headerTitle, headerSub, body) => `
       <!-- FOOTER -->
       <tr><td style="background:#0a0a14;padding:20px 32px;text-align:center;border-top:1px solid #1e1e35;">
         <p style="margin:0;color:#4b5563;font-size:12px;">BGMI Arena &bull; <a href="https://bgmiarena.netlify.app" style="color:#f97316;text-decoration:none;">bgmiarena.netlify.app</a></p>
-        <p style="margin:6px 0 0;color:#374151;font-size:11px;">Questions? Email <a href="mailto:spalande092@gmail.com" style="color:#6b7280;text-decoration:none;">spalande092@gmail.com</a></p>
+        <p style="margin:6px 0 0;color:#374151;font-size:11px;">Questions? Email <a href="mailto:esportbgmiarena@gmail.com" style="color:#6b7280;text-decoration:none;">esportbgmiarena@gmail.com</a></p>
       </td></tr>
 
     </table>

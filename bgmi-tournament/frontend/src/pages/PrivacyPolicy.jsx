@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 export default function PrivacyPolicy() {
   return (
@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
 
         <Section title="8. Contact">
           For privacy-related concerns, email us at{' '}
-          <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>.
+          <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>.
         </Section>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 const TOPICS = [
@@ -23,7 +23,7 @@ export default function ContactUs() {
     const body = encodeURIComponent(
       `Name: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone || 'Not provided'}\n\nTopic: ${form.topic}\n\nMessage:\n${form.message}`
     );
-    window.location.href = `mailto:spalande092@gmail.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:esportbgmiarena@gmail.com?subject=${subject}&body=${body}`;
     setSubmitted(true);
     toast.success('Opening your email client...');
   };
@@ -39,14 +39,14 @@ export default function ContactUs() {
 
       {/* Contact cards */}
       <div className="grid sm:grid-cols-2 gap-4 mb-10">
-        <a href="mailto:spalande092@gmail.com"
+        <a href="mailto:esportbgmiarena@gmail.com"
           className="card flex items-center gap-4 hover:border-orange-500/30 transition-all group">
           <div className="w-12 h-12 rounded-2xl bg-orange-500/15 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
             📧
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-0.5">Email Support</p>
-            <p className="font-bold text-white text-sm">spalande092@gmail.com</p>
+            <p className="font-bold text-white text-sm">esportbgmiarena@gmail.com</p>
             <p className="text-xs text-gray-600 mt-0.5">For all queries & disputes</p>
           </div>
         </a>
@@ -68,7 +68,7 @@ export default function ContactUs() {
         <span className="text-blue-400 text-lg shrink-0">ℹ️</span>
         <p className="text-sm text-gray-400">
           For urgent issues like payment failures or match disputes, email us directly at{' '}
-          <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>{' '}
+          <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>{' '}
           with your registered email and tournament details.
         </p>
       </div>
@@ -81,7 +81,7 @@ export default function ContactUs() {
           <p className="text-gray-400 text-sm mb-6">
             Your message has been pre-filled in your email client. Just hit Send!<br />
             If it didn't open, email us directly at{' '}
-            <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>
+            <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>
           </p>
           <button onClick={() => setSubmitted(false)} className="btn-secondary text-sm">Send Another Message</button>
         </div>

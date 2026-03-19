@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
@@ -17,9 +17,9 @@ export default function Footer() {
             <p className="text-gray-600 text-xs leading-relaxed mb-3">
               Competitive BGMI tournaments with real cash prizes. Play fair, win big.
             </p>
-            <a href="mailto:spalande092@gmail.com"
+            <a href="mailto:esportbgmiarena@gmail.com"
               className="text-xs text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1.5">
-              📧 spalande092@gmail.com
+              📧 esportbgmiarena@gmail.com
             </a>
           </div>
 

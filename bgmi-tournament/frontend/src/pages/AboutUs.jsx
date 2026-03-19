@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 const stats = [
   { value: '100+', label: 'Tournaments Hosted' },
@@ -70,8 +70,8 @@ export default function AboutUs() {
             <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center text-lg shrink-0">📧</div>
             <div>
               <p className="text-xs text-gray-500 mb-0.5">Email</p>
-              <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:text-orange-300 font-medium text-sm transition-colors">
-                spalande092@gmail.com
+              <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:text-orange-300 font-medium text-sm transition-colors">
+                esportbgmiarena@gmail.com
               </a>
             </div>
           </div>

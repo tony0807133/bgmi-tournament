@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 export default function TermsOfService() {
   return (
@@ -19,7 +19,7 @@ export default function TermsOfService() {
 
         <Section title="3. Account Responsibility">
           You are responsible for maintaining the confidentiality of your account credentials. Any activity under your account is your responsibility. Report unauthorized access immediately to{' '}
-          <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>.
+          <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>.
           We reserve the right to suspend accounts that violate these terms.
         </Section>
 
@@ -68,7 +68,7 @@ export default function TermsOfService() {
 
         <Section title="10. Contact">
           For any questions regarding these terms, contact us at{' '}
-          <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>.
+          <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>.
         </Section>
       </div>
 

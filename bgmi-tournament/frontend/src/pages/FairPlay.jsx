@@ -1,4 +1,4 @@
-export default function FairPlay() {
+﻿export default function FairPlay() {
   const rules = [
     {
       icon: '🚫',
@@ -75,7 +75,7 @@ export default function FairPlay() {
 
       <p className="text-center text-gray-600 text-xs mt-8">
         Questions? Contact us at{' '}
-        <a href="mailto:spalande092@gmail.com" className="text-orange-400 hover:underline">spalande092@gmail.com</a>
+        <a href="mailto:esportbgmiarena@gmail.com" className="text-orange-400 hover:underline">esportbgmiarena@gmail.com</a>
       </p>
     </div>
   );
