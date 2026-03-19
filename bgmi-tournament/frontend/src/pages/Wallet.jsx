@@ -113,7 +113,11 @@ export default function Wallet() {
     } catch { setFetchError(true); }
   };
 
-  useEffect(() => { fetchData().finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    fetchData().finally(() => setLoading(false));
+    const interval = setInterval(() => fetchData(), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const pickFile = (e) => {
     const f = e.target.files[0];
