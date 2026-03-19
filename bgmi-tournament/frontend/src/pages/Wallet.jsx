@@ -224,8 +224,8 @@ export default function Wallet() {
               ))}
             </div>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg">Rs.</span>
-              <input className="input pl-10 text-lg font-black" type="number" min="10" step="1"
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg">{"\u20B9"}</span>
+              <input className="input pl-9 text-lg font-black" type="number" min="10" step="1"
                 placeholder="Custom amount" value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
             <button onClick={() => { if (!amount || Number(amount) < 10) { toast.error("Minimum Rs.10"); return; } setStep(1); }}
@@ -333,8 +333,8 @@ export default function Wallet() {
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Amount</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
-              <input className="input pl-10" type="number" min="10" max={data.wallet} placeholder="0"
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{"\u20B9"}</span>
+              <input className="input pl-9" type="number" min="10" max={data.wallet} placeholder="0"
                 value={wForm.amount} onChange={e => setWForm({ ...wForm, amount: e.target.value })} required />
             </div>
             <p className="text-xs text-gray-600 mt-1">Available: <span className="text-orange-400 font-bold">Rs.{data.wallet}</span></p>
@@ -396,3 +396,4 @@ export default function Wallet() {
     </div>
   );
 }
+
