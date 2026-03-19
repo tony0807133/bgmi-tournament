@@ -38,7 +38,7 @@ export default function ContactUs() {
       </div>
 
       {/* Contact cards */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-10">
+      <div className="grid sm:grid-cols-3 gap-4 mb-10">
         <a href="mailto:esportbgmiarena@gmail.com"
           className="card flex items-center gap-4 hover:border-orange-500/30 transition-all group">
           <div className="w-12 h-12 rounded-2xl bg-orange-500/15 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
@@ -48,6 +48,18 @@ export default function ContactUs() {
             <p className="text-xs text-gray-500 mb-0.5">Email Support</p>
             <p className="font-bold text-white text-sm">esportbgmiarena@gmail.com</p>
             <p className="text-xs text-gray-600 mt-0.5">For all queries & disputes</p>
+          </div>
+        </a>
+
+        <a href="https://www.instagram.com/esport_bgmi.arena" target="_blank" rel="noreferrer"
+          className="card flex items-center gap-4 hover:border-pink-500/30 transition-all group">
+          <div className="w-12 h-12 rounded-2xl bg-pink-500/15 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
+            📸
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-0.5">Instagram</p>
+            <p className="font-bold text-white text-sm">@esport_bgmi.arena</p>
+            <p className="text-xs text-gray-600 mt-0.5">Follow for updates & announcements</p>
           </div>
         </a>
 

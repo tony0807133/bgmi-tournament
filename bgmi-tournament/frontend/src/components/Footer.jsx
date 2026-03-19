@@ -21,6 +21,10 @@ export default function Footer() {
               className="text-xs text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1.5">
               📧 esportbgmiarena@gmail.com
             </a>
+            <a href="https://www.instagram.com/esport_bgmi.arena" target="_blank" rel="noreferrer"
+              className="text-xs text-pink-400 hover:text-pink-300 transition-colors flex items-center gap-1.5 mt-2">
+              📸 @esport_bgmi.arena
+            </a>
           </div>
 
           {/* Play */}
