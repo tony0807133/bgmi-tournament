@@ -115,11 +115,11 @@ function RegRow({ reg, onUpdate }) {
       </td>
       <td className="py-3 px-2">
         <input type="number" min="0" value={kills} onChange={e => setKills(e.target.value)}
-          className="w-16 bg-dark-700 border border-gray-700 rounded px-2 py-1 text-center text-sm" />
+          className="w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-center text-sm text-white" />
       </td>
       <td className="py-3 px-2">
         <input type="number" min="0" value={rank} onChange={e => setRank(e.target.value)}
-          className="w-16 bg-dark-700 border border-gray-700 rounded px-2 py-1 text-center text-sm" />
+          className="w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-center text-sm text-white" />
       </td>
       <td className="py-3 px-2 text-green-400 font-bold">
         {reg.prizeAwarded > 0 ? `₹${reg.prizeAwarded}` : '—'}
