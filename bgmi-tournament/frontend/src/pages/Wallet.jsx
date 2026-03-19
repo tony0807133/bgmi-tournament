@@ -217,7 +217,7 @@ export default function Wallet() {
         <Steps current={step} />
         {step === 0 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {QUICK_AMOUNTS.map(a => (
                 <button key={a} type="button" onClick={() => setAmount(String(a))}
                   className={`py-2.5 rounded-xl text-sm font-black border transition-all ${
@@ -274,7 +274,7 @@ export default function Wallet() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setStep(0)} className="btn-secondary flex-1 py-3">Back</button>
-              <button onClick={() => setStep(2)} className="btn-primary flex-1 py-3">I have Paid - Upload Proof</button>
+              <button onClick={() => setStep(2)} className="btn-primary flex-1 py-3 text-sm">I have Paid →</button>
             </div>
           </div>
         )}
