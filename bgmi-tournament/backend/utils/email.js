@@ -3,134 +3,180 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'BGMI Arena <noreply@morse-code-trainer.com>';
 
+// ── Shared base template ──────────────────────────────────────────────────────
+const base = (headerColor, headerIcon, headerTitle, headerSub, body) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${headerTitle}</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a14;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a14;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="100%" style="max-width:580px;background:#12121f;border-radius:20px;overflow:hidden;border:1px solid #1e1e35;">
+
+      <!-- HEADER -->
+      <tr><td style="background:${headerColor};padding:36px 32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">${headerIcon}</div>
+        <h1 style="margin:0;color:#fff;font-size:24px;font-weight:900;letter-spacing:1px;">${headerTitle}</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">${headerSub}</p>
+      </td></tr>
+
+      <!-- BODY -->
+      <tr><td style="padding:32px;">
+        ${body}
+      </td></tr>
+
+      <!-- FOOTER -->
+      <tr><td style="background:#0a0a14;padding:20px 32px;text-align:center;border-top:1px solid #1e1e35;">
+        <p style="margin:0;color:#4b5563;font-size:12px;">BGMI Arena &bull; <a href="https://bgmiarena.netlify.app" style="color:#f97316;text-decoration:none;">bgmiarena.netlify.app</a></p>
+        <p style="margin:6px 0 0;color:#374151;font-size:11px;">Questions? Email <a href="mailto:spalande092@gmail.com" style="color:#6b7280;text-decoration:none;">spalande092@gmail.com</a></p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+// ── Credential box (Room ID / Password) ──────────────────────────────────────
+const credBox = (label, value) => `
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0;">
+  <tr>
+    <td style="background:#0d0d1f;border:1px solid #2a2a4a;border-radius:12px;padding:16px 20px;">
+      <p style="margin:0 0 6px;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;">${label}</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:middle;">
+            <span style="font-size:28px;font-weight:900;color:#f97316;letter-spacing:6px;font-family:'Courier New',monospace;">${value}</span>
+          </td>
+          <td align="right" style="vertical-align:middle;">
+            <span style="background:#1e1e35;border:1px solid #2a2a4a;border-radius:8px;padding:6px 14px;color:#9ca3af;font-size:12px;font-weight:600;white-space:nowrap;">📋 Copy</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+
+// ── Info row ──────────────────────────────────────────────────────────────────
+const infoRow = (label, value) => `
+<tr>
+  <td style="padding:10px 0;border-bottom:1px solid #1e1e35;color:#9ca3af;font-size:13px;">${label}</td>
+  <td style="padding:10px 0;border-bottom:1px solid #1e1e35;color:#fff;font-size:13px;font-weight:700;text-align:right;">${value}</td>
+</tr>`;
+
+// ── sendRoomDetails ───────────────────────────────────────────────────────────
 exports.sendRoomDetails = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
+  const body = `
+    <p style="color:#d1d5db;font-size:15px;margin:0 0 24px;">Hey <strong style="color:#fff;">${name}</strong>, your match is about to begin! Here are your room credentials.</p>
+
+    <!-- Tournament Info -->
+    <div style="background:#0d0d1f;border:1px solid #1e1e35;border-radius:14px;padding:20px;margin-bottom:20px;">
+      <p style="margin:0 0 14px;color:#f97316;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">🏆 Tournament Info</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        ${infoRow('Tournament', tournament.title)}
+        ${infoRow('Mode', tournament.type.toUpperCase())}
+        ${infoRow('Map', tournament.map)}
+        ${infoRow('Your Slot', `#${slotNumber}`)}
+        ${infoRow('Scheduled', new Date(tournament.scheduledAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true }))}
+      </table>
+    </div>
+
+    <!-- Room Credentials -->
+    <div style="background:#0d0d1f;border:2px solid #f97316;border-radius:14px;padding:20px;margin-bottom:20px;">
+      <p style="margin:0 0 14px;color:#f97316;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">🔑 Room Credentials</p>
+      ${credBox('Room ID', roomId)}
+      ${credBox('Room Password', roomPassword)}
+      <p style="margin:14px 0 0;color:#6b7280;font-size:12px;text-align:center;">Tap and hold the value to copy on mobile</p>
+    </div>
+
+    <!-- Warning -->
+    <div style="background:#1a1500;border:1px solid #f59e0b;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;color:#f59e0b;font-size:13px;">⚠️ Join the room <strong>10 minutes before</strong> match time. Do not share these credentials with anyone.</p>
+    </div>
+
+    <p style="color:#6b7280;font-size:13px;margin:0;">Good luck and play fair! 🔥</p>`;
+
   await resend.emails.send({
     from: FROM, to,
     subject: `🎮 Room Details: ${tournament.title} — Match Starting Soon!`,
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<style>
-body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;padding:0}
-.wrap{max-width:600px;margin:0 auto;background:#1a1a2e;border-radius:16px;overflow:hidden}
-.hdr{background:linear-gradient(135deg,#f97316,#ef4444);padding:36px 30px;text-align:center}
-.hdr h1{margin:0;font-size:26px;letter-spacing:2px}.hdr p{margin:8px 0 0;opacity:.9;font-size:14px}
-.body{padding:30px}
-.card{background:#16213e;border:1px solid #f97316;border-radius:12px;padding:20px;margin:16px 0}
-.card h2{margin:0 0 14px;color:#f97316;font-size:14px;text-transform:uppercase}
-.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4a}
-.row:last-child{border-bottom:none}.lbl{color:#9ca3af;font-size:13px}.val{font-weight:bold;font-size:14px;color:#fff}
-.rbox{background:#0f3460;border-radius:8px;padding:14px;text-align:center;margin:8px 0}
-.rlbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px}
-.rval{font-size:26px;font-weight:900;color:#f97316;letter-spacing:4px;margin-top:4px}
-.warn{background:#1f1f0a;border:1px solid #f59e0b;border-radius:8px;padding:14px;margin:16px 0;color:#f59e0b;font-size:13px}
-.ftr{background:#0f0f1a;padding:16px 30px;text-align:center;color:#6b7280;font-size:12px}
-</style></head><body>
-<div class="wrap">
-<div class="hdr"><h1>🎮 BGMI Arena</h1><p>Room Details — Match Starting Soon!</p></div>
-<div class="body">
-<p>Hey <strong>${name}</strong>, your match is about to begin!</p>
-<div class="card"><h2>🏆 Tournament Info</h2>
-<div class="row"><span class="lbl">Tournament</span><span class="val">${tournament.title}</span></div>
-<div class="row"><span class="lbl">Mode</span><span class="val">${tournament.type.toUpperCase()}</span></div>
-<div class="row"><span class="lbl">Map</span><span class="val">${tournament.map}</span></div>
-<div class="row"><span class="lbl">Your Slot</span><span class="val">#${slotNumber}</span></div>
-<div class="row"><span class="lbl">Scheduled</span><span class="val">${new Date(tournament.scheduledAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:true})}</span></div>
-</div>
-<div class="card"><h2>🔑 Room Credentials</h2>
-<div class="rbox"><div class="rlbl">Room ID</div><div class="rval">${roomId}</div></div>
-<div class="rbox"><div class="rlbl">Room Password</div><div class="rval">${roomPassword}</div></div>
-</div>
-<div class="warn">⚠️ Join 10 minutes before match time. Do not share credentials.</div>
-<p style="color:#9ca3af;font-size:13px">Good luck! 🔥</p>
-</div>
-<div class="ftr">BGMI Arena &bull; Automated email</div>
-</div></body></html>`
+    html: base('linear-gradient(135deg,#f97316 0%,#ef4444 100%)', '🎮', 'Room Details Ready', 'Match Starting Soon — Join Now!', body)
   });
 };
 
-exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
-  await resend.emails.send({
-    from: FROM, to,
-    subject: `💰 Refund: ₹${amount} credited — ${tournament.title}`,
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<style>
-body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;padding:0}
-.wrap{max-width:600px;margin:0 auto;background:#1a1a2e;border-radius:16px;overflow:hidden}
-.hdr{background:linear-gradient(135deg,#3b82f6,#8b5cf6);padding:30px;text-align:center}
-.hdr h1{margin:0;font-size:22px}.body{padding:30px}
-.amt{font-size:40px;font-weight:900;color:#22c55e;text-align:center;margin:20px 0}
-.ftr{background:#0f0f1a;padding:16px;text-align:center;color:#6b7280;font-size:12px}
-</style></head><body>
-<div class="wrap">
-<div class="hdr"><h1>💰 Refund Processed</h1></div>
-<div class="body">
-<p>Hey <strong>${name}</strong>,</p>
-<p>Tournament <strong>${tournament.title}</strong> was cancelled. Your entry fee is refunded to your wallet.</p>
-<div class="amt">₹${amount} Credited</div>
-<p style="color:#9ca3af;font-size:13px">Available in your wallet now.</p>
-</div>
-<div class="ftr">BGMI Arena</div>
-</div></body></html>`
-  });
-};
-
+// ── sendReminderEmail ─────────────────────────────────────────────────────────
 exports.sendReminderEmail = async ({ to, name, tournament, roomId, roomPassword, slotNumber }) => {
+  const body = `
+    <p style="color:#d1d5db;font-size:15px;margin:0 0 20px;">Hey <strong style="color:#fff;">${name}</strong>, your match starts in <strong style="color:#22c55e;">15 minutes</strong>! Join the room NOW.</p>
+
+    <!-- Countdown -->
+    <div style="background:#0d1f0d;border:2px solid #22c55e;border-radius:14px;padding:24px;text-align:center;margin-bottom:20px;">
+      <div style="font-size:56px;font-weight:900;color:#22c55e;line-height:1;">15</div>
+      <div style="color:#86efac;font-size:14px;margin-top:4px;">minutes until match start &bull; Slot #${slotNumber}</div>
+    </div>
+
+    <!-- Room Credentials -->
+    <div style="background:#0d0d1f;border:2px solid #f97316;border-radius:14px;padding:20px;margin-bottom:20px;">
+      <p style="margin:0 0 14px;color:#f97316;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">🔑 Room Credentials</p>
+      ${credBox('Room ID', roomId)}
+      ${credBox('Room Password', roomPassword)}
+      <p style="margin:14px 0 0;color:#6b7280;font-size:12px;text-align:center;">Tap and hold the value to copy on mobile</p>
+    </div>
+
+    <div style="background:#1a1500;border:1px solid #f59e0b;border-radius:10px;padding:14px 18px;">
+      <p style="margin:0;color:#f59e0b;font-size:13px;">⚠️ Late entry = disqualification. Good luck! 🔥</p>
+    </div>`;
+
   await resend.emails.send({
     from: FROM, to,
     subject: `⚡ 15 Min Reminder: ${tournament.title} — Join Now!`,
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<style>
-body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;padding:0}
-.wrap{max-width:600px;margin:0 auto;background:#1a1a2e;border-radius:16px;overflow:hidden}
-.hdr{background:linear-gradient(135deg,#22c55e,#16a34a);padding:32px 30px;text-align:center}
-.hdr h1{margin:0;font-size:22px}.hdr p{margin:6px 0 0;opacity:.9;font-size:14px}
-.body{padding:30px}
-.alert{background:#16213e;border:2px solid #22c55e;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px}
-.cd{font-size:44px;font-weight:900;color:#22c55e}.sub{color:#9ca3af;font-size:13px;margin-top:4px}
-.rbox{background:#0f3460;border-radius:8px;padding:14px;text-align:center;margin:8px 0}
-.rlbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px}
-.rval{font-size:26px;font-weight:900;color:#f97316;letter-spacing:4px;margin-top:4px}
-.ftr{background:#0f0f1a;padding:16px 30px;text-align:center;color:#6b7280;font-size:12px}
-</style></head><body>
-<div class="wrap">
-<div class="hdr"><h1>⚡ Match Starting in 15 Minutes!</h1><p>${tournament.title}</p></div>
-<div class="body">
-<p>Hey <strong>${name}</strong>, join the room NOW!</p>
-<div class="alert"><div class="cd">15 min</div><div class="sub">until match start · Slot #${slotNumber}</div></div>
-<div class="rbox"><div class="rlbl">Room ID</div><div class="rval">${roomId}</div></div>
-<div class="rbox"><div class="rlbl">Room Password</div><div class="rval">${roomPassword}</div></div>
-<p style="color:#f59e0b;font-size:13px;margin-top:16px">⚠️ Late entry = disqualification. Good luck! 🔥</p>
-</div>
-<div class="ftr">BGMI Arena &bull; Automated reminder</div>
-</div></body></html>`
+    html: base('linear-gradient(135deg,#22c55e 0%,#16a34a 100%)', '⚡', '15 Minutes to Match!', tournament.title, body)
   });
 };
 
+// ── sendRefundEmail ───────────────────────────────────────────────────────────
+exports.sendRefundEmail = async ({ to, name, tournament, amount }) => {
+  const body = `
+    <p style="color:#d1d5db;font-size:15px;margin:0 0 24px;">Hey <strong style="color:#fff;">${name}</strong>,</p>
+    <p style="color:#d1d5db;font-size:14px;margin:0 0 24px;">Tournament <strong style="color:#fff;">${tournament.title}</strong> was cancelled. Your entry fee has been refunded to your wallet.</p>
+
+    <div style="background:#0d1f0d;border:1px solid #22c55e;border-radius:14px;padding:28px;text-align:center;margin-bottom:24px;">
+      <p style="margin:0 0 6px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Amount Refunded</p>
+      <div style="font-size:48px;font-weight:900;color:#22c55e;">&#8377;${amount}</div>
+      <p style="margin:8px 0 0;color:#86efac;font-size:13px;">Credited to your BGMI Arena wallet</p>
+    </div>
+
+    <p style="color:#6b7280;font-size:13px;margin:0;">Your balance is available immediately. <a href="https://bgmiarena.netlify.app/wallet" style="color:#f97316;text-decoration:none;">View Wallet →</a></p>`;
+
+  await resend.emails.send({
+    from: FROM, to,
+    subject: `💰 Refund: ₹${amount} credited — ${tournament.title}`,
+    html: base('linear-gradient(135deg,#3b82f6 0%,#8b5cf6 100%)', '💰', 'Refund Processed', `₹${amount} has been credited to your wallet`, body)
+  });
+};
+
+// ── sendPasswordResetEmail ────────────────────────────────────────────────────
 exports.sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
+  const body = `
+    <p style="color:#d1d5db;font-size:15px;margin:0 0 16px;">Hey <strong style="color:#fff;">${name}</strong>,</p>
+    <p style="color:#d1d5db;font-size:14px;margin:0 0 28px;">We received a request to reset your BGMI Arena password. Click the button below to set a new one:</p>
+
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:900;font-size:16px;letter-spacing:0.5px;">Reset My Password</a>
+    </div>
+
+    <div style="background:#1a1500;border:1px solid #f59e0b;border-radius:10px;padding:14px 18px;margin:24px 0;">
+      <p style="margin:0;color:#f59e0b;font-size:13px;">⚠️ This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your account is safe.</p>
+    </div>
+
+    <p style="color:#6b7280;font-size:12px;margin:0;word-break:break-all;">Or copy this link:<br/><span style="color:#f97316;">${resetUrl}</span></p>`;
+
   await resend.emails.send({
     from: FROM, to,
     subject: '🔐 Reset Your BGMI Arena Password',
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<style>
-body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;margin:0;padding:0}
-.wrap{max-width:600px;margin:0 auto;background:#1a1a2e;border-radius:16px;overflow:hidden}
-.hdr{background:linear-gradient(135deg,#f97316,#ef4444);padding:36px 30px;text-align:center}
-.hdr h1{margin:0;font-size:24px;letter-spacing:1px}.hdr p{margin:8px 0 0;opacity:.9;font-size:14px}
-.body{padding:30px}
-.btn{display:block;width:fit-content;margin:24px auto;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:900;font-size:16px;letter-spacing:.5px}
-.note{color:#9ca3af;font-size:12px;text-align:center;margin-top:16px}
-.warn{background:#1f1f0a;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:20px 0;color:#f59e0b;font-size:13px}
-.ftr{background:#0f0f1a;padding:16px 30px;text-align:center;color:#6b7280;font-size:12px}
-</style></head><body>
-<div class="wrap">
-<div class="hdr"><h1>🔐 Password Reset</h1><p>BGMI Arena Account Recovery</p></div>
-<div class="body">
-<p>Hey <strong>${name}</strong>,</p>
-<p>We received a request to reset your password. Click the button below to set a new one:</p>
-<a href="${resetUrl}" class="btn">Reset My Password</a>
-<div class="warn">⚠️ This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your account is safe.</div>
-<p class="note">Or copy this link: <br/><span style="color:#f97316;word-break:break-all">${resetUrl}</span></p>
-</div>
-<div class="ftr">BGMI Arena &bull; If you need help, contact spalande092@gmail.com</div>
-</div></body></html>`
+    html: base('linear-gradient(135deg,#f97316 0%,#ef4444 100%)', '🔐', 'Password Reset', 'BGMI Arena Account Recovery', body)
   });
 };
